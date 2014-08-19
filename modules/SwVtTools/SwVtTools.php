@@ -37,8 +37,6 @@ class SwVtTools {
 
     public function checkSettingsField() {
         global $adb;
-        $sql = 'DELETE FROM vtiger_settings_field WHERE linkto = "index.php?module=SwVtTools&action=admin&parenttab=Settings"';
-        $adb->query($sql);
 
         $sql = "SELECT * FROM vtiger_settings_field WHERE linkto = 'index.php?module=SwVtTools&view=Index&parent=Settings'";
         $result = $adb->query($sql);
@@ -76,6 +74,8 @@ class SwVtTools {
 			// TODO Handle post installation actions
 		} else if($event_type == 'module.disabled') {
             $this->removeHeaderLink();
+            $sql = 'DELETE FROM vtiger_settings_field WHERE name = "Vtiger Tools"';
+            $adb->query($sql);
 			// TODO Handle actions when this module is disabled.
 		} else if($event_type == 'module.enabled') {
             $this->initialize_module();

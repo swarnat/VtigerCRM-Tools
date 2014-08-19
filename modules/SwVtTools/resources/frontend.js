@@ -1,5 +1,5 @@
-jQuery(function() {
-    if(jQuery('#layoutEditorContainer').length > 0) {
+var VtigerTools = {
+    'initLayoutEditor': function() {
         var container = jQuery('#layoutEditorContainer');
 
         jQuery('.editFields', container).on('dblclick', function(e) {
@@ -65,6 +65,17 @@ jQuery(function() {
 
                 }
             }, this));
+        });
+    }
+};
+
+jQuery(function() {
+
+    if(jQuery('#layoutEditorContainer').length > 0) {
+        VtigerTools.initLayoutEditor();
+        var container = jQuery('#layoutEditorContainer');
+        container.on('change', '[name="layoutEditorModules"]', function(e) {
+            window.setTimeout('VtigerTools.initLayoutEditor();', 2000);
         });
     }
 });

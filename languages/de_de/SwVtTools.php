@@ -8,7 +8,7 @@
 require('Settings/SwVtTools.php');
 
 $languageStrings = array_merge($languageStrings, array(
-
+    'SwVtTools' => 'VtigerCRM Tools'
 ));
 $jsLanguageStrings = array_merge($jsLanguageStrings, array(
 

@@ -11,7 +11,10 @@
     </div>
     <hr>
 
-    <div class='span4'>
-        asd
+    <div>
+        <strong>Informations:</strong>&nbsp;&nbsp;&nbsp;
+        <a target="_blank" href="http://vtiger.stefanwarnat.de/">International Blog</a>&nbsp;&nbsp;&nbsp;
+        <a target="_blank"  href="http://www.stefanwarnat.de/">German Blog</a><br /><br />
+        <a href=""
     </div>
 </div>
