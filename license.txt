@@ -1,0 +1,10 @@
+################################################
+#
+# Stefan Warnat VtigerCRM Tools
+#
+# Version: 600.000
+# Author: Stefan Warnat <support@stefanwarnat.de>
+# Website: http://vtiger.stefanwarnat.de
+# 
+################################################
+
