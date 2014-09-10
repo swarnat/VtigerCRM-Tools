@@ -13,9 +13,19 @@ require_once($root_directory."/modules/SwVtTools/autoloader.php");
 class Settings_SwVtTools_Index_View extends Settings_Vtiger_Index_View {
 
 	public function process(Vtiger_Request $request) {
-		$moduleName = $request->getModule();
+        $adb = \PearDatabase::getInstance();
+
+        $moduleName = $request->getModule();
 		$qualifiedModuleName = $request->getModule(false);
 		$viewer = $this->getViewer($request);
+
+        $sql = 'SELECT * FROM vtiger_links WHERE linktype = "HEADERSCRIPT" and linklabel = "ToolsGermanNumbers" LIMIT 1';
+        $result = $adb->pquery($sql);
+        if($adb->num_rows($result) > 0) {
+            $viewer->assign('comma_numbers_enabled', true);
+        } else {
+            $viewer->assign('comma_numbers_enabled', false);
+        }
 
         $viewer->view('Index.tpl', $qualifiedModuleName);
 	}
@@ -30,7 +40,7 @@ class Settings_SwVtTools_Index_View extends Settings_Vtiger_Index_View {
 		$moduleName = $request->getModule();
 
 		$jsFileNames = array(
-			"modules.Settings.$moduleName.views.resources.Colorizer"
+			"modules.Settings.$moduleName.views.resources.backend"
 		);
 
 		$jsScriptInstances = $this->checkAndConvertJsScripts($jsFileNames);
@@ -43,7 +53,7 @@ class Settings_SwVtTools_Index_View extends Settings_Vtiger_Index_View {
         $moduleName = $request->getModule();
 
         $cssFileNames = array(
-            "~/modules/Settings/$moduleName/resources/Colorizer.css"
+            //"~/modules/Settings/$moduleName/resources/Colorizer.css"
         );
 
         $cssScriptInstances = $this->checkAndConvertCssStyles($cssFileNames);
