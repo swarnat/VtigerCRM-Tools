@@ -2,7 +2,7 @@
 <module>
 	<type>extension</type>
 	<name>SwVtTools</name>
-	<version>600.02</version>
+	<version>600.03</version>
 	<dependencies>
 	  <vtiger_version>6.0.0</vtiger_version> 
 	</dependencies>

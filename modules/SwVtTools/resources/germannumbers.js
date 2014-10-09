@@ -15,7 +15,13 @@ jQuery.fn.bindFirst = function(name, fn) {
 };
 
 jQuery('.listPrice, .qty, .lineItemInputBox').bindFirst('keyup', function() {
+  // store current positions in variables
+    var start = this.selectionStart;
+    var end = this.selectionEnd;
+
     jQuery(this).val(jQuery(this).val().replace(/,/,'.'));
+
+    this.setSelectionRange(start, end);
 });
 
 jQuery('.input-large[data-fieldinfo]').bindFirst('keyup', function() {
@@ -27,7 +33,19 @@ jQuery('.input-large[data-fieldinfo]').bindFirst('keyup', function() {
 
     if(typeof fieldInfo != 'undefined' &&
       (fieldInfo.type == 'double' || fieldInfo.type == 'integer')) {
-        jQuery(this).val(jQuery(this).val().replace(/,/,'.'));
+            var oldContent = jQuery(this).val();
+            var newContent = oldContent.replace(/,/,'.');
+
+            if(oldContent != newContent) {
+
+                var start = this.selectionStart;
+                var end = this.selectionEnd;
+
+                jQuery(this).val(newContent);
+
+                this.setSelectionRange(start, end);
+            }
+
     }
 
 });

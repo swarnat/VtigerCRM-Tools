@@ -69,6 +69,29 @@ var VtigerTools = {
     }
 };
 
+var SWVtigerTools = {
+    registeredFilter: {},
+    registerFilter: function(key, callback) {
+        if(typeof SWVtigerTools.registeredFilter[key] === 'undefined') {
+            SWVtigerTools.registeredFilter[key] = [];
+        }
+
+        SWVtigerTools.registeredFilter[key].push(callback);
+    },
+    filter: function(key, param) {
+        if(typeof SWVtigerTools.registeredFilter[key] === 'undefined') {
+            return param;
+        }
+        jQuery.each(SWVtigerTools.registeredFilter[key], function(index, value) {
+            var newParam = value(param);
+            if(typeof newParam !== 'undefined') {
+                param = newParam;
+            }
+        });
+        return param;
+    }
+};
+
 jQuery(function() {
 
     if(jQuery('#layoutEditorContainer').length > 0) {
@@ -78,6 +101,7 @@ jQuery(function() {
             window.setTimeout('VtigerTools.initLayoutEditor();', 2000);
         });
     }
+
 });
 
 jQuery.fn.bindFirst = function(name, fn) {
