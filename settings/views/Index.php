@@ -8,13 +8,26 @@
  * All Rights Reserved.
  *************************************************************************************/
 global $root_directory;
-require_once($root_directory."/modules/SwVtTools/autoloader.php");
+require_once($root_directory."/modules/SwVtTools/autoload_wf.php");
 
 class Settings_SwVtTools_Index_View extends Settings_Vtiger_Index_View {
 
 	public function process(Vtiger_Request $request) {
         $adb = \PearDatabase::getInstance();
 
+        if(!empty($_POST['tool_action'])) {
+            switch($_POST['tool_action']) {
+                case 'createRelation':
+                    include_once('vtlib/Vtiger/Module.php');
+
+                    $fromInstance = Vtiger_Module::getInstance(\SwVtTools\VtUtils::getModuleName($_POST['tabid']));
+                    $toInstance = Vtiger_Module::getInstance(\SwVtTools\VtUtils::getModuleName($_POST['related_tabid']));
+
+                    $fromInstance->setRelatedlist($toInstance,$_POST['label'],array('add','select'), 'get_dependents_list');
+                    echo '<div class="alert alert-success" style="padding:10px;">Relation was created</div>';
+                    break;
+            }
+        }
         $moduleName = $request->getModule();
 		$qualifiedModuleName = $request->getModule(false);
 		$viewer = $this->getViewer($request);
@@ -26,6 +39,10 @@ class Settings_SwVtTools_Index_View extends Settings_Vtiger_Index_View {
         } else {
             $viewer->assign('comma_numbers_enabled', false);
         }
+
+        $entityModules = \SwVtTools\VtUtils::getEntityModules(true);
+
+        $viewer->assign('entityModules', $entityModules);
 
         $viewer->view('Index.tpl', $qualifiedModuleName);
 	}
