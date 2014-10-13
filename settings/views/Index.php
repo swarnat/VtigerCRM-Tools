@@ -21,9 +21,10 @@ class Settings_SwVtTools_Index_View extends Settings_Vtiger_Index_View {
                     include_once('vtlib/Vtiger/Module.php');
 
                     $fromInstance = Vtiger_Module::getInstance(\SwVtTools\VtUtils::getModuleName($_POST['tabid']));
-                    $toInstance = Vtiger_Module::getInstance(\SwVtTools\VtUtils::getModuleName($_POST['related_tabid']));
+                    $toModuleName = \SwVtTools\VtUtils::getModuleName($_POST['related_tabid']);
+                    $toInstance = Vtiger_Module::getInstance($toModuleName);
 
-                    $fromInstance->setRelatedlist($toInstance,$_POST['label'],array('add','select'), 'get_dependents_list');
+                    $fromInstance->setRelatedlist($toInstance,$_POST['label'],array('add','select'), $toModuleName=='Documents'?'get_attachments':'get_dependents_list');
                     echo '<div class="alert alert-success" style="padding:10px;">Relation was created</div>';
                     break;
             }
