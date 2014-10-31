@@ -41,6 +41,14 @@ class Settings_SwVtTools_Index_View extends Settings_Vtiger_Index_View {
             $viewer->assign('comma_numbers_enabled', false);
         }
 
+        $sql = 'SELECT * FROM vtiger_cron_task WHERE name = ?';
+        $result = $adb->pquery($sql, array('SWVTTool GoogleCalSync'));
+        if($adb->num_rows($result) > 0) {
+            $viewer->assign('gcal_autosync', true);
+        } else {
+            $viewer->assign('gcal_autosync', false);
+        }
+
         $entityModules = \SwVtTools\VtUtils::getEntityModules(true);
 
         $viewer->assign('entityModules', $entityModules);

@@ -20,7 +20,7 @@
         <br /><br />
     </div>
     <br />
-    <fieldset>
+    <fieldset style="border: 1px solid #cccccc; padding:10px;">
         <legend>Numbers with comma</legend>
     {if $comma_numbers_enabled eq true}
         You could enter numbers with the use of the comma. <button class="btn btn-warning" type="button" onclick="return SwVtTools.commaNumbers(false);">deactivate this function</button><br/>
@@ -28,10 +28,22 @@
         You could <strong>NOT</strong> enter numbers with the use of the comma. <button class="btn btn-primary" type="button" onclick="return SwVtTools.commaNumbers(true);">activate this function</button><br/>
     {/if}
     </fieldset>
-    <br/>
-    <fieldset>
-        <legend>create default Related Lists</legend>
+    <fieldset style="border: 1px solid #cccccc; padding:10px;">
+        <legend>Google Calendar Sync</legend>
+        <p><strong>AutoSync:</strong></p>
+        {if $gcal_autosync eq true}
+            Every configured Google Calendar Sync will be automatically executed from Scheduler. <button class="btn btn-warning" type="button" onclick="return SwVtTools.GCalSync(false);">deactivate this function</button><br/>
+        {else}
+            This function will automatically sync configured Google Calendar connections. <button class="btn btn-primary" type="button" onclick="return SwVtTools.GCalSync(true);">activate this function</button><br/>
+        {/if}
+        <p><strong>Init Google Calendar Chooser</strong></p>
+            <p>This will create the required database table to make us of this function. <button class="btn btn-primary" type="button" onclick="return SwVtTools.initGCalSync();">initialize</button></p>
+
     </fieldset>
+
+    <br/>
+    <fieldset style="border: 1px solid #cccccc; padding:10px;">
+        <legend>create default Related Lists</legend>
 
     <form method="POST" action="#">
         <input type="hidden" name="tool_action" value="createRelation"/>
@@ -61,4 +73,6 @@
         </tr>
     </table>
     </form>
+    </fieldset>
+
 </div>
