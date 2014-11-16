@@ -9,6 +9,10 @@ require_once('modules/SwVtTools/lib/SwVtTools/VtUtils.php');
 
 $adb = \PearDatabase::getInstance();
 
+if(empty($current_language))
+	$current_language = 'en_us';
+$app_strings = return_application_language($current_language);
+
 $sql = 'SELECT * FROM vtiger_google_sync WHERE googlemodule = "Calendar"';
 $result = $adb->query($sql);
 
@@ -30,9 +34,12 @@ while($user = $adb->fetchByAssoc($result)) {
 
     $controller = new Google_Calendar_Controller($user2);
 
-    if($enableSharedCalendar === true) {
+    if($enableSharedCalendar === true && method_exists($controller, 'getCalendarId')) {
         $calId = $controller->getCalendarId();
         $controller->setCalendarId($calId);
+    }
+    if($enableSharedCalendar === true && !method_exists($controller, 'getCalendarId')) {
+        $enableSharedCalendar = false;
     }
 
     $records = $controller->synchronize();

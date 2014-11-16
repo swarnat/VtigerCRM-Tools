@@ -325,18 +325,21 @@ class VtUtils
             return self::$UITypesName[$uitype];
         }
 
-        $type = explode('~', $typeofdata);
-        switch($type){
-            case 'T': return "time";
-            case 'D':
-            case 'DT': return "date";
-            case 'E': return "email";
-            case 'N':
-            case 'NN': return "double";
-            case 'P': return "password";
-            case 'I': return "integer";
-            case 'V':
-            default: return "string";
+        if($typeofdata !== false) {
+            $type = explode('~', $typeofdata);
+
+            switch($type){
+                case 'T': return "time";
+                case 'D':
+                case 'DT': return "date";
+                case 'E': return "email";
+                case 'N':
+                case 'NN': return "double";
+                case 'P': return "password";
+                case 'I': return "integer";
+                case 'V':
+                default: return "string";
+            }
         }
 
     }
