@@ -119,7 +119,9 @@ class Settings_SwVtTools_Index_View extends Settings_Vtiger_Index_View {
 
                     $cvid = $adb->getUniqueID('vtiger_customview');
 
-                    $whiteList = array('cvid','viewname', 'setdefault', 'setmetrics', 'entitytype', 'status', 'userid');
+                    $current_user = Users_Record_Model::getCurrentUserModel();
+                    $whiteList = array('cvid','viewname', 'setdefault', 'setmetrics', 'entitytype', 'status');
+                    $content['vtiger_customview']['userid'] = $current_user->getId();
                     $content['vtiger_customview']['viewname'] = $request->get('filterName');
                     $content['vtiger_customview']['cvid'] = $cvid;
 
