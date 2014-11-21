@@ -30,7 +30,7 @@ class Settings_SwVtTools_ExportCustomView_Action extends Settings_Vtiger_Basic_A
                 $data['vtiger_cvcolumnlist'][] = $row;
 
                 $parts = explode(':', $row['columnname']);
-                $columns[] = array($parts[0], $parts[1], $row['columnname']);
+                $columns[] = array($parts[0], $parts[2], $row['columnname']);
             }
 
             $sql = 'SELECT * FROM vtiger_cvstdfilter WHERE cvid = ?';
@@ -54,7 +54,7 @@ class Settings_SwVtTools_ExportCustomView_Action extends Settings_Vtiger_Basic_A
                 $data['vtiger_cvadvfilter'][] = $row;
 
                 $parts = explode(':', $row['columnname']);
-                $columns[] = array($parts[0], $parts[1], $row['columnname']);
+                $columns[] = array($parts[0], $parts[2], $row['columnname']);
             }
 
             foreach($columns as $col) {
@@ -65,6 +65,7 @@ class Settings_SwVtTools_ExportCustomView_Action extends Settings_Vtiger_Basic_A
             }
 
             global $vtiger_current_version;
+            //$vtiger_current_version = '6.0.0';
             $data['system'] = array('vtiger_version' => $vtiger_current_version);
 
             $data = base64_encode(serialize($data));
