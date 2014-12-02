@@ -3,7 +3,7 @@ use \Workflow\VTEntity;
 use \Workflow\VTTemplate;
 
 global $root_directory;
-require_once($root_directory."/modules/Workflow2/autoload_wf.php");
+require_once($root_directory."/modules/SwVtTools/autoload_wf.php");
 
 class SwVtTools_GCalSelection_Action extends Vtiger_Action_Controller {
 
