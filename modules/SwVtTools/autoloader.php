@@ -10,14 +10,13 @@ namespace SwVtTools;
 class Autoload {
     protected static $_Registered = array();
 
-    public static function autoload($classname) {
-        if(strpos($classname, "_")) {
+    public static function autoloader($classname) {
+        
+		if(strpos($classname, "_")) {
             $prefix = explode("_", $classname);
         } else {
+			$classname = trim($classname, '\\');
             $prefix = explode("\\", $classname);
-            if($prefix[0] == 'SwVtTools' && substr($classname, 0, 1) != "\\") {
-                $classname = "\\" . $classname;
-            }
         }
 
         if(!isset(self::$_Registered[$prefix[0]])) {
@@ -25,7 +24,8 @@ class Autoload {
         }
 
         if($prefix[1] == "SWExtension") {
-            if(count($prefix) == 3 && $prefix[2] == sha1($prefix[0]."-GenKey")) {
+
+            if(count($prefix) == 3 && $prefix[2] == 'c'.sha1($prefix[0]."-GenKey")) {
                 $origClass = $classname;
                 $doAlias = true;
 
@@ -47,6 +47,25 @@ class Autoload {
         }
     }
 
+    public static function registerDirectory($directory) {
+        if(substr($directory, 0, 1) == "~") {
+            global $root_directory;
+            $directory = $root_directory."/".substr($directory, 2);
+        }
+
+        $directory = realpath($directory);
+        if(is_dir($directory)) {
+            $alle = glob($directory.'/*');
+            foreach($alle as $datei) {
+                if(is_dir($datei)) {
+                    self::register(basename($datei), $directory);
+                }
+            }
+
+        }
+
+    }
+
     public static function register($prefix, $directory) {
         if(substr($directory, 0, 1) == "~") {
             global $root_directory;
@@ -59,7 +78,7 @@ class Autoload {
     }
 }
 
-spl_autoload_register(__NAMESPACE__ .'\Autoload::autoload');
+spl_autoload_register(__NAMESPACE__ .'\Autoload::autoloader');
 
 if(file_exists(dirname(__FILE__)."/constants.php")) {
     require_once(dirname(__FILE__)."/constants.php");

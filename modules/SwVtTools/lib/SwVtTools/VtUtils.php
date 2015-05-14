@@ -149,7 +149,33 @@ class VtUtils
                         $language = \Vtiger_Language_Handler::getModuleStringsFromFile('en_us', $field->block->module->name);
                     }
 
-                    $field->type->picklistValues = getAllPickListValues($field->name, $language['languageStrings']);
+                    switch($field->name) {
+                        case 'hdnTaxType':
+                            $field->type->picklistValues = array(
+                                'group' => 'Group',
+                                'individual' => 'Individual',
+                            );
+                            break;
+                        case 'email_flag':
+                            $field->type->picklistValues = array(
+                                'SAVED' => 'SAVED',
+                                'SENT' => 'SENT',
+                                'MAILSCANNER' => 'MAILSCANNER',
+                            );
+                            break;
+                        case 'currency_id':
+                            $field->type->picklistValues = array();
+                            $currencies = getAllCurrencies();
+                            foreach($currencies as $currencies) {
+                                $field->type->picklistValues[$currencies['currency_id']] = $currencies['currencylabel'];
+                            }
+
+                        break;
+                        default:
+                            $field->type->picklistValues = getAllPickListValues($field->name, $language['languageStrings']);
+                        break;
+                    }
+
                 }
 
                 if($uitype !== false) {
@@ -394,7 +420,33 @@ class VtUtils
                             $language = \Vtiger_Language_Handler::getModuleStringsFromFile('en_us', $field->block->module->name);
                         }
 
-                        $field->type->picklistValues = getAllPickListValues($field->name, $language['languageStrings']);
+                        switch($field->name) {
+                            case 'hdnTaxType':
+                                $field->type->picklistValues = array(
+                                    'group' => 'Group',
+                                    'individual' => 'Individual',
+                                );
+                                break;
+                            case 'email_flag':
+                                $field->type->picklistValues = array(
+                                    'SAVED' => 'SAVED',
+                                    'SENT' => 'SENT',
+                                    'MAILSCANNER' => 'MAILSCANNER',
+                                );
+                                break;
+                            case 'currency_id':
+                                $field->type->picklistValues = array();
+                                $currencies = getAllCurrencies();
+                                foreach($currencies as $currencies) {
+                                    $field->type->picklistValues[$currencies['currency_id']] = $currencies['currencylabel'];
+                                }
+
+                            break;
+                            default:
+                                $field->type->picklistValues = getAllPickListValues($field->name, $language['languageStrings']);
+                            break;
+                        }
+
                     }
                     if(in_array($field->uitype, self::$referenceUitypes)) {
                         $modules = self::getModuleForReference($field->block->module->id, $field->name, $field->uitype);
@@ -686,7 +738,7 @@ class VtUtils
 
         return false;
     }
-    public function checkColumn($table, $colum, $type, $default = false) {
+    public static function checkColumn($table, $colum, $type, $default = false) {
         global $adb;
 
         $result = $adb->query("SHOW COLUMNS FROM `".$table."` LIKE '".$colum."'");

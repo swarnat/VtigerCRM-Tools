@@ -1,6 +1,6 @@
 <?php
-use \Workflow\VTEntity;
-use \Workflow\VTTemplate;
+use \SwVtTools\VTEntity;
+use \SwVtTools\VTTemplate;
 
 global $root_directory;
 require_once($root_directory."/modules/SwVtTools/autoload_wf.php");

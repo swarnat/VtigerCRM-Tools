@@ -23,5 +23,11 @@ var SwVtTools = {
         });
         return false;
     },
+    GeneralOptions:function(option, value) {
+        jQuery.post('index.php', { module:'SwVtTools', parent:'Settings', action: 'GeneralOptions', option:option, value:value }, function() {
+            alert('Successfully Applied');
+        });
+        return false;
 
+    }
 }

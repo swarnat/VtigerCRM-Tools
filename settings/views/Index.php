@@ -31,17 +31,63 @@ class Settings_SwVtTools_Index_View extends Settings_Vtiger_Index_View {
 
         $viewer = $this->getViewer($request);
 
+        if(!empty($_GET['delSidebar'])) {
+            $sql = "DELETE FROM vtiger_tools_sidebar WHERE id = ".intval($_GET["delSidebar"]);
+            $adb->query($sql);
+
+            $linkurl = 'module=SwVtTools&view=SidebarWidget&sID='.intval($_GET["delSidebar"]).'';
+            $sql = "DELETE FROM vtiger_links WHERE linkurl = '".$linkurl."'";
+            $adb->query($sql);
+        }
+
         if(!empty($_POST['tool_action'])) {
             switch($_POST['tool_action']) {
+                case 'saveSidebar':
+                    $sql = "UPDATE vtiger_tools_sidebar SET title = ?, content = ?, active = ? WHERE id = ?";
+                    $adb->pquery($sql, array($_POST["title"], $_POST["content"], $_POST["active"]=="1"?1:0, $_POST["sidebar_id"]));
+
+                    $linkurl = 'module=SwVtTools&view=SidebarWidget&sID='.intval($_POST["sidebar_id"]).'';
+                    echo '<div class="alert alert-success" style="padding:10px;">Sidebar was saved successfully!</div>';
+                    if($_POST["active"] == "1") {
+                        $sql = "SELECT * FROM vtiger_links WHERE linkurl = ?";
+                        $result = $adb->pquery($sql, array($linkurl));
+
+                        if($adb->num_rows($result) == 0) {
+                            $linkid = $adb->getUniqueID("vtiger_links");
+                            $sql = "INSERT INTO vtiger_links SET linkid = ".$linkid.", tabid = ?, linktype = 'DETAILVIEWSIDEBARWIDGET', linklabel = ?, linkurl = ?";
+                            $adb->pquery($sql, array(intval($_POST["sidebar_tabid"]), $_POST["title"], $linkurl));
+                        } else {
+
+                        }
+                    } else {
+                        $sql = "DELETE FROM vtiger_links WHERE linkurl = ?";
+                        $adb->pquery($sql, array($linkurl));
+                    }
+
+                    break;
+                case 'createSidebar':
+                    $nextID = $adb->getUniqueID("vtiger_tools_sidebar");
+
+                    $sql = "INSERT INTO vtiger_tools_sidebar SET id = ".$nextID.", active = 0, tabid = ".intval($_POST["sidebar_module"]).", content = '', title = 'Sidebar ".$nextID."'";
+                    $adb->query($sql);
+
+                    break;
                 case 'createRelation':
                     include_once('vtlib/Vtiger/Module.php');
 
-                    $fromInstance = Vtiger_Module::getInstance(\SwVtTools\VtUtils::getModuleName($_POST['tabid']));
-                    $toModuleName = \SwVtTools\VtUtils::getModuleName($_POST['related_tabid']);
-                    $toInstance = Vtiger_Module::getInstance($toModuleName);
+                    if(empty($_POST['label'])) {
+                        echo '<div class="alert alert-danger" style="padding:10px;">You don\'t set relation label!</div>';
+                    } else {
 
-                    $fromInstance->setRelatedlist($toInstance,$_POST['label'],array('add','select'), $toModuleName=='Documents'?'get_attachments':'get_dependents_list');
-                    echo '<div class="alert alert-success" style="padding:10px;">Relation was created</div>';
+                        $fromInstance = Vtiger_Module::getInstance(\SwVtTools\VtUtils::getModuleName($_POST['tabid']));
+                        $toModuleName = \SwVtTools\VtUtils::getModuleName($_POST['related_tabid']);
+                        $toInstance = Vtiger_Module::getInstance($toModuleName);
+
+                        $reltype = $_POST['reltype'] == 'get_dependents_list' ? 'get_dependents_list' : 'get_related_list';
+
+                        $fromInstance->setRelatedlist($toInstance,$_POST['label'],array('add','select'), $toModuleName=='Documents'?'get_attachments':$reltype);
+                        echo '<div class="alert alert-success" style="padding:10px;">Relation was created</div>';
+                    }
                     break;
                 case 'makeCvToDefault':
                     $defaultCustomView = array();
@@ -172,6 +218,16 @@ class Settings_SwVtTools_Index_View extends Settings_Vtiger_Index_View {
                     break;
             }
         }
+
+        if(!empty($_GET['editSidebar'])) {
+            $sql = 'SELECT * FROM vtiger_tools_sidebar WHERE id = ?';
+            $result = $adb->pquery($sql, array($_GET["editSidebar"]), true);
+            $sidebarData = $adb->fetchByAssoc($result);
+            $sidebarData['moduleName'] = \SwVtTools\VtUtils::getModuleName($sidebarData['tabid']);
+
+            $viewer->assign('editSidebar', $sidebarData);
+        }
+
         $moduleName = $request->getModule();
 		$qualifiedModuleName = $request->getModule(false);
 
@@ -204,7 +260,7 @@ class Settings_SwVtTools_Index_View extends Settings_Vtiger_Index_View {
         $viewer->assign('entityModules', $entityModules);
 
         $sql = 'SELECT * FROM vtiger_customview ORDER BY entitytype';
-        $result = $adb->query($sql, tru);
+        $result = $adb->query($sql, true);
 
         $customViews = array();
         while($filter = $adb->fetchByAssoc($result)) {
@@ -212,6 +268,26 @@ class Settings_SwVtTools_Index_View extends Settings_Vtiger_Index_View {
         }
 
         $viewer->assign('customViews', $customViews);
+
+        $sql = 'SELECT * FROM vtiger_tools_sidebar ORDER BY tabid';
+        $result = $adb->query($sql, true);
+
+        $sidebars = array();
+        while($row = $adb->fetchByAssoc($result)) {
+            $row['moduleName'] = \SwVtTools\VTUtils::getModuleName($row["tabid"]);
+            $sidebars[] = $row;
+        }
+
+        $sql = 'SELECT MAX(laststart) as timestart FROM vtiger_cron_task';
+        $result = $adb->query($sql);
+        if(time() - $adb->query_result($result,0, 'timestart') > 86400) {
+            $viewer->assign('show_cron_warning', true);
+        }
+
+        $EventHandlerActive = class_exists('EventHandler_Module_Model') && vtlib_isModuleActive('EventHandler') && strpos(file_get_contents(vglobal('root_directory').'/modules/Vtiger/models/ListView.php'), 'EventHandler_Module_Model::do_filter') !== false;
+        $viewer->assign('EventHandlerActive', $EventHandlerActive);
+
+        $viewer->assign('sidebars', $sidebars);
 
         $viewer->view('Index.tpl', $qualifiedModuleName);
 	}
@@ -226,7 +302,11 @@ class Settings_SwVtTools_Index_View extends Settings_Vtiger_Index_View {
 		$moduleName = $request->getModule();
 
 		$jsFileNames = array(
-			"modules.Settings.$moduleName.views.resources.backend"
+			"modules.Settings.$moduleName.views.resources.backend",
+			"modules.Settings.$moduleName.views.resources.Essentials",
+            "libraries.jquery.ckeditor.ckeditor",
+            "libraries.jquery.ckeditor.adapters.jquery",
+            'modules.Vtiger.resources.CkEditor',
 		);
 
 		$jsScriptInstances = $this->checkAndConvertJsScripts($jsFileNames);
@@ -239,7 +319,7 @@ class Settings_SwVtTools_Index_View extends Settings_Vtiger_Index_View {
         $moduleName = $request->getModule();
 
         $cssFileNames = array(
-            //"~/modules/Settings/$moduleName/resources/Colorizer.css"
+            "~/modules/Settings/$moduleName/views/resources/Backend.css"
         );
 
         $cssScriptInstances = $this->checkAndConvertCssStyles($cssFileNames);

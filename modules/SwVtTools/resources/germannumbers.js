@@ -13,15 +13,32 @@ jQuery.fn.bindFirst = function(name, fn) {
         handlers.splice(0, 0, handler);
     });
 };
+jQuery(function() {
+	jQuery('[name="listPrice"][data-decimal-seperator=","]').bindFirst('keyup', function() {
+		var start = this.selectionStart;
+		var end = this.selectionEnd;
 
-jQuery('.listPrice, .qty, .lineItemInputBox').bindFirst('keyup', function() {
-  // store current positions in variables
-    var start = this.selectionStart;
-    var end = this.selectionEnd;
+		jQuery(this).val(jQuery(this).val().replace('.',','));
 
-    jQuery(this).val(jQuery(this).val().replace(/,/,'.'));
+		this.setSelectionRange(start, end);
 
-    this.setSelectionRange(start, end);
+	});
+	jQuery('.listPrice, .qty, .lineItemInputBox, .currencyField').bindFirst('keyup', function() {
+	  // store current positions in variables
+		var start = this.selectionStart;
+		var end = this.selectionEnd;
+
+		jQuery(this).val(jQuery(this).val().replace(/,/,'.'));
+
+		this.setSelectionRange(start, end);
+	});
+	if(jQuery('#view').val() == 'PriceBookProductPopup') {
+		jQuery('.btn.addButton').bindFirst('click', function() {
+			jQuery('[name="listPrice"][data-decimal-seperator=","]').each(function(index, value) {
+				jQuery(value).val(jQuery(value).val().replace('.',','));
+			});
+		});
+	}
 });
 
 jQuery('.input-large[data-fieldinfo]').bindFirst('keyup', function() {
