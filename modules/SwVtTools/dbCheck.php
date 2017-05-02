@@ -39,6 +39,16 @@ if(!\SwVtTools\VtUtils::existTable("vtiger_tools_sidebar")) {
               PRIMARY KEY (`id`)
             ) ENGINE=InnoDB;");
 }
+if(!\SwVtTools\VtUtils::existTable("vtiger_tools_logs")) {
+    echo "Create table vtiger_tools_logs ... ok<br>";
+    $adb->query("CREATE TABLE `vtiger_tools_logs` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `type` varchar(8) NOT NULL,
+  `log` text NOT NULL,
+  `created` datetime NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB;");
+}
 if(!\SwVtTools\VtUtils::existTable("vtiger_tools_sidebar_seq")) {
     echo "Create table vtiger_tools_sidebar_seq ... ok<br>";
     $adb->query("CREATE TABLE IF NOT EXISTS `vtiger_tools_sidebar_seq` (

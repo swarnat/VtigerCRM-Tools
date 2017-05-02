@@ -492,6 +492,17 @@ class Settings_SwVtTools_Index_View extends Settings_Vtiger_Index_View {
         if(\SwVtTools\Patcher::isPatchApplied(vglobal('root_directory').'/modules/'.$request->get('module').'/patcher/patches/partialdetailview.patch', array('partdetail_1', 'partdetail_2')) == false) {
             $viewer->assign('PartialDetailViewModificationRequired', true);
         }
+        if(\SwVtTools\Patcher::isPatchApplied(vglobal('root_directory').'/modules/'.$request->get('module').'/patcher/patches/emaillog.patch', array('emaillog_1', 'emaillog_2')) == false) {
+            $viewer->assign('EmailLogModificationRequired', true);
+        } else {
+            $sql = 'SELECT type, created, id FROM vtiger_tools_logs ORDER BY created DESC LIMIT 50';
+            $result = $adb->query($sql);
+            $logs = array();
+            while($row = $adb->fetchByAssoc($result)) {
+                $logs[$row['type']][] = $row;
+            }
+            $viewer->assign('Logs', $logs);
+        }
 
         $availableBlocks = array();
         $sql = 'SELECT * FROM vtiger_tools_detailpart ORDER BY modulename';

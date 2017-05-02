@@ -18,6 +18,7 @@ class Patcher
 	private $backupFolder = null;
 	private $messages = array();
     private $basePath = null;
+	private $_OnlyRemove = false;
 
 	public function setHash($hash) {
 		$this->hash = $hash;
@@ -29,7 +30,9 @@ class Patcher
 
         $this->backupFolder = $folder;
     }
-
+	public function removePatchMode() {
+		$this->_OnlyRemove = true;
+	}
 	public static function isPatchApplied($patchFilename, $patchIds = array()) {
 		if(!is_array($patchIds)) $patchIds = array($patchIds);
 
@@ -91,31 +94,65 @@ class Patcher
 		foreach($filenames as $file) {
 			$html .= '<br/><h3>Open File: '.$file.'</h3>';
 			$html .= '<div style="padding:5px 10px;">';
-				
-				foreach($files[$file] as $mod) {
-					$html .= '<div class="swpatcher_startmod" style="margin-top:10px;padding:5px 0;border-top:1px solid #aaa;font-size:15px;"><strong>'.$counter++.'. Start Modification <em>'.$mod['id'].'</em></strong></div>';
+
+			if($this->_OnlyRemove == false) {
+				foreach ($files[$file] as $mod) {
+					$html .= '<div class="swpatcher_startmod" style="margin-top:10px;padding:5px 0;border-top:1px solid #aaa;font-size:15px;"><strong>' . $counter++ . '. Start Modification <em>' . $mod['id'] . '</em></strong></div>';
 					$html .= '<div style="margin-left:10px;">';
 					$mod['search'] = str_replace(array("\r", "\n"), '', $mod['search']);
 					$html .= '<strong>Search:</strong><br/>';
-					$html .= '<div class="swpatcher_search" style="margin:4px 10px;font-family:\'Courier New\';padding-left:  5px; border-left:3px solid #eee;">'.$mod['search'].'</div>';
+					$html .= '<div class="swpatcher_search" style="margin:4px 10px;font-family:\'Courier New\';padding-left:  5px; border-left:3px solid #eee;">' . $mod['search'] . '</div>';
 
-					switch(strtolower($mod['method'])) {
+					switch (strtolower($mod['method'])) {
 						case 'insertbefore':
 							$html .= '<strong>insert before:</strong>';
-						break;
+							break;
 						case 'insertafter':
 							$html .= '<strong>insert after:</strong>';
-						break;
+							break;
 						case 'replacewith':
 							$html .= '<strong>replace with:</strong>';
 							break;
 					}
 
 					$mod['modification'] = $this->getModificationContent($mod);
-					
-					$html .= '<div class="swpatcher_search" style="margin:4px 10px;white-space:pre;font-family:\'Courier New\';padding-left:  5px; border-left:3px solid #eee;">'.$mod['modification'].'</div>';
+
+					$html .= '<div class="swpatcher_search" style="margin:4px 10px;white-space:pre;font-family:\'Courier New\';padding-left:  5px; border-left:3px solid #eee;">' . $mod['modification'] . '</div>';
 					$html .= '</div>';
 				}
+			} else {
+				foreach ($files[$file] as $mod) {
+					$html .= '<div class="swpatcher_startmod" style="margin-top:10px;padding:5px 0;border-top:1px solid #aaa;font-size:15px;"><strong>' . $counter++ . '. Start Modification <em>' . $mod['id'] . '</em></strong></div>';
+					$html .= '<div style="margin-left:10px;">';
+					$mod['search'] = str_replace(array("\r", "\n"), '', $mod['search']);
+					$html .= '<strong>Search:</strong><br/>';
+
+					//$modification = $this->getModificationContent($mod, false);
+
+					$html .= '<div class="swpatcher_search" style="margin:4px 10px;font-family:\'Courier New\';padding-left:  5px; border-left:3px solid #eee;">' . '/**SWPATCHER-'.strtoupper(md5($mod['id'])).'-START-'.$this->hash.'**/' . '</div>';
+
+					switch (strtolower($mod['method'])) {
+						case 'insertbefore':
+						case 'insertafter':
+							$html .= '<strong>Delete until</strong>';
+
+							$html .= '<div class="swpatcher_search" style="margin:4px 10px;white-space:pre;font-family:\'Courier New\';padding-left:  5px; border-left:3px solid #eee;">' . '/**SWPATCHER-'.strtoupper(md5($mod['id'])).'-FINISH**/' . '</div>';
+							break;
+						case 'replacewith':
+							$html .= '<strong>Remove until:</strong>';
+							$untilStr = $mod['search'];
+
+							$html .= '<div class="swpatcher_search" style="margin:4px 10px;white-space:pre;font-family:\'Courier New\';padding-left:  5px; border-left:3px solid #eee;">' . '/**SWPATCHER-'.strtoupper(md5($mod['id'])).'-FINISH**/' . '</div>';
+
+							$html .= '<strong>Replace with:</strong>';
+							$html .= '<div class="swpatcher_search" style="margin:4px 10px;white-space:pre;font-family:\'Courier New\';padding-left:  5px; border-left:3px solid #eee;">' . $untilStr . '</div>';
+							break;
+					}
+
+
+					$html .= '</div>';
+				}
+			}
 				
 			$html .= '</div>';
 		}
@@ -289,7 +326,46 @@ class Patcher
             echo '<p class="success">Successfuly Restore '.$filename.'</p>';
         }
 	}
-	
+
+	private function _removeModification($filename, $modifications, $dryRun) {
+		$changed = false;
+
+		$content = file_get_contents($filename);
+		$updateCounter = 0;
+
+		foreach($modifications as $index => $mod) {
+
+			if(strpos($content, '/**SWPATCHER-'.strtoupper(md5($mod['id'])).'-START') !== false) {
+				$changed = true;
+				$mod['modification'] = explode('\r\n', $mod['modification']);
+				//$this->messages[] = '['.$filename.'] Update '.$mod['id'].'';
+				$this->_ReplaceMod = $mod;
+				switch (strtolower($mod['method'])) {
+					case 'insertbefore':
+					case 'insertafter':
+						$content = preg_replace('/\/\*\*SWPATCHER-'.strtoupper(md5($mod['id'])).'-START-(.*?)\*\*\\/(.*)\/\*\*SWPATCHER-'.strtoupper(md5($mod['id'])).'-FINISH\*\*\//s', '', $content);
+						break;
+					case 'replacewith':
+						$content = preg_replace('/\/\*\*SWPATCHER-'.strtoupper(md5($mod['id'])).'-START-(.*?)\*\*\\/(.*)\/\*\*SWPATCHER-'.strtoupper(md5($mod['id'])).'-FINISH\*\*\//s', $mod['search'], $content);
+						break;
+				}
+
+				$updateCounter++;
+				unset($modifications[$index]);
+			}
+		}
+
+		if($updateCounter > 0) {
+			$this->messages[] = '['.$filename.'] Remove '.$updateCounter.' modification/s';
+		}
+
+		if($changed == true && $dryRun == false) {
+			file_put_contents($filename, $content);
+		}
+
+		return $modifications;
+	}
+
 	private $_ReplaceMod = false;
 	private function _clearOldModifications($filename, $modifications, $dryRun) {
 		$changed = false;
@@ -352,6 +428,11 @@ class Patcher
         if($dryRun === false) {
             $this->backupFile($filename);
         }
+
+		if($this->_OnlyRemove === true) {
+			$this->_removeModification($filename, $modifications, $dryRun);
+			return;
+		}
 
 		$modifications = $this->_clearOldModifications($filename, $modifications, $dryRun);
 

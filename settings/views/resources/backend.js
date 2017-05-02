@@ -100,6 +100,15 @@ var SwVtTools = {
 
         refreshReferenceList();
 
+        $('.ClearLogBtn').on('click', function(e) {
+            var type = $(e.currentTarget).data('type');
+            RedooAjax('SwVtTools').postAction('ClearLog', {
+                'type': type
+            }, true).then(function(response) {
+                alert('Log was cleared');
+            });
+        });
+
         $('.Select2ForRelTabSelection').each(function(index, ele) {
             console.log(relTabAvailable[$(ele).data('module')]);
             $(ele).select2({

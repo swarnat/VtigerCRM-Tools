@@ -25,6 +25,9 @@
         <input type="radio" name="pcss3t"  id="tab3" class="tab-content-3">
         <label for="tab3">Related Tabs<i class="fa fa-columns" aria-hidden="true"></i></label>
 
+        <input type="radio" name="pcss3t"  id="tab4" class="tab-content-4">
+        <label for="tab4">E-Mail Log<i class="fa fa-columns" aria-hidden="true"></i></label>
+
         <ul>
             <li class="tab-content tab-content-first typography">
                 <div class="row-fluid">
@@ -425,6 +428,28 @@
                     </table>
                     <button class="btn btn-primary" type="submit"><i class="fa fa-floppy-o" aria-hidden="true"></i> Save</button>
                 </form>
+            </li>
+            <li class="tab-content tab-content-4">
+                {if $EmailLogModificationRequired eq true}
+                    <div class="alert alert-info">
+                        <i class="fa fa-exclamation-triangle" aria-hidden="true"></i> To use this feature, you need to execute this process to apply filemodifications: <a class="btn btn-default" href="index.php?module=SwVtTools&parent=Settings&&view=Patcher&hash=emaillog">Check modifications</a>
+                        <br/>
+                        Please store the recover/repair Link from Patch process. It will deactive the Maillog after work is finished.
+                    </div>
+                {else}
+                    <div class="alert alert-success">
+                        <i class="fa fa-check-square" aria-hidden="true"></i> Required File modification found!
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fa fa-check-square" aria-hidden="true"></i> Deactivate: <a class="btn btn-default" href="index.php?module=SwVtTools&parent=Settings&&view=Patcher&hash=emaillog&remove=1">Remove modifications</a>
+                    </div>
+                    <input type="button" class="btn btn-primary ClearLogBtn" data-type="mail" value="Clear Mail Log" />
+                    <hr/><br/>
+                    {foreach from=$Logs.mail item=Log}
+                        <div style="font-size:14px;padding:5px 0;cursor:pointer;" onclick="window.open('index.php?module=SwVtTools&parent=Settings&view=LogView&lid={$Log.id}');">show Log from {$Log.created|date_format:'d.m.Y H:i:s'}</div>
+                    {/foreach}
+
+                {/if}
             </li>
         </ul>
 

@@ -51,6 +51,10 @@ class Settings_SwVtTools_Patcher_View extends Settings_Vtiger_Index_View {
         $Patcher->setBackupFolder(vglobal('root_directory').DIRECTORY_SEPARATOR.'modules'.DIRECTORY_SEPARATOR.$request->get('module').DIRECTORY_SEPARATOR.'patcher'.DIRECTORY_SEPARATOR.'backup'.DIRECTORY_SEPARATOR);
         $Patcher->setHash($hash);
 
+		if($request->has('remove') && $request->get('remove') == '1') {
+			$Patcher->removePatchMode();
+		}
+
 		if($step == 1) {
 			echo '<h3>Step 1 / 2  - Dry run to check compatibility</h3><br/>';
 			$return = $Patcher->applyPatchFile($patchfile, vglobal('root_directory').'/', true);
@@ -65,7 +69,7 @@ class Settings_SwVtTools_Patcher_View extends Settings_Vtiger_Index_View {
 				}
 
 				echo '<strong>Please resolve problems before you could continue!</strong>';
-				echo '&nbsp;&nbsp;<a class="btn" href="index.php?parent=Settings&module='.$request->get('module').'&view='.$request->get('view').'&hash='.$return['hash'].'&viewpatch=1">View file manipulations manually to check</a>';
+				echo '&nbsp;&nbsp;<a class="btn" href="index.php?parent=Settings&module='.$request->get('module').'&view='.$request->get('view').'&hash='.$return['hash'].'&viewpatch=1'.($request->get('remove') == '1'?'&remove=1':'').'">View file manipulations manually to check</a>';
 
 			} else {
 				foreach($return['messages'] as $msg) {
@@ -74,11 +78,11 @@ class Settings_SwVtTools_Patcher_View extends Settings_Vtiger_Index_View {
 
 				echo '<br/><strong>In case of problems after patch call this url to restore all files:</strong> <a href="modules/'.$request->get('module').'/repair.php?ts='.$return['hash'].'">modules/'.$request->get('module').'/repair.php?ts='.$return['hash'].'</a><br/>';
 
-				echo '<br/><a class="btn btn-success" href="index.php?parent=Settings&module='.$request->get('module').'&view='.$request->get('view').'&step=2&hash='.$return['hash'].'">GO - apply modifications to files</a>';
+				echo '<br/><a class="btn btn-success" href="index.php?parent=Settings&module='.$request->get('module').'&view='.$request->get('view').'&step=2&hash='.$return['hash'].''.($request->get('remove') == '1'?'&remove=1':'').'">GO - apply modifications to files</a>';
 
 				echo '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="font-style:italic;">(Backups of original files will be stored)</span><br/><br/>';
 
-				echo '<a class="btn" href="index.php?parent=Settings&module='.$request->get('module').'&view='.$request->get('view').'&hash='.$hash.'&viewpatch=1">View file manipulations manually to check</a>';
+				echo '<a class="btn" href="index.php?parent=Settings&module='.$request->get('module').'&view='.$request->get('view').'&hash='.$hash.'&viewpatch=1'.($request->get('remove') == '1'?'&remove=1':'').'">View file manipulations manually to check</a>';
 			}
 
 			if($request->get('viewpatch') == '1') {
