@@ -15,7 +15,7 @@ jQuery.fn.bindFirst = function(name, fn) {
 };
 jQuery(function() {
 	jQuery('[name="listPrice"][data-decimal-seperator=","]').bindFirst('keyup', function() {
-		var start = this.selectionStart;
+        var start = this.selectionStart;
 		var end = this.selectionEnd;
 
 		jQuery(this).val(jQuery(this).val().replace('.',','));
@@ -28,7 +28,9 @@ jQuery(function() {
 		var start = this.selectionStart;
 		var end = this.selectionEnd;
 
-		jQuery(this).val(jQuery(this).val().replace(/,/,'.'));
+        if(jQuery(this).data('decimalSeperator') != ',') {
+		    jQuery(this).val(jQuery(this).val().replace(/,/,'.'));
+        }
 
 		this.setSelectionRange(start, end);
 	});

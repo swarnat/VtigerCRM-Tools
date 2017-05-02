@@ -26,27 +26,33 @@ $listView = new Google_List_View();
 
 echo 'GoogleCal Sync'.PHP_EOL;
 
-while($user = $adb->fetchByAssoc($result)) {
-    $user2 = CRMEntity::getInstance('Users');
-    $user2->retrieveCurrentUserInfoFromFile($user['user']);
+    while($user = $adb->fetchByAssoc($result)) {
+        try {
+            $user2 = CRMEntity::getInstance('Users');
+            $user2->retrieveCurrentUserInfoFromFile($user['user']);
 
-    vglobal('current_user', $user2);
+            vglobal('current_user', $user2);
 
-    $controller = new Google_Calendar_Controller($user2);
+            $controller = new Google_Calendar_Controller($user2);
 
-    if($enableSharedCalendar === true && method_exists($controller, 'getCalendarId')) {
-        $calId = $controller->getCalendarId();
-        $controller->setCalendarId($calId);
+            if($enableSharedCalendar === true && method_exists($controller, 'getCalendarId')) {
+                $calId = $controller->getCalendarId();
+                $controller->setCalendarId($calId);
+            }
+            if($enableSharedCalendar === true && !method_exists($controller, 'getCalendarId')) {
+                $enableSharedCalendar = false;
+            }
+
+            $records = $controller->synchronize();
+            $recordCount = $listView->getSyncRecordsCount($records);
+            echo 'UserID '.$user['user'].PHP_EOL;
+            echo 'VtigerCRM: '.str_pad($recordCount['vtiger']['update'], 5, ' ', STR_PAD_LEFT).' Update '.str_pad($recordCount['vtiger']['create'], 5, ' ', STR_PAD_LEFT).' Create '.str_pad($recordCount['vtiger']['delete'], 5, ' ', STR_PAD_LEFT).' Delete '.PHP_EOL;
+            echo 'Google   : '.str_pad($recordCount['google']['update'], 5, ' ', STR_PAD_LEFT).' Update '.str_pad($recordCount['google']['create'], 5, ' ', STR_PAD_LEFT).' Create '.str_pad($recordCount['google']['delete'], 5, ' ', STR_PAD_LEFT).' Delete '.PHP_EOL;
+        } catch (\Exception $exp) {
+            echo 'Error UserID '.$user['user'].PHP_EOL;
+            echo $exp->getMessage();
+        }
     }
-    if($enableSharedCalendar === true && !method_exists($controller, 'getCalendarId')) {
-        $enableSharedCalendar = false;
-    }
 
-    $records = $controller->synchronize();
-    $recordCount = $listView->getSyncRecordsCount($records);
-    echo 'UserID '.$user['user'].PHP_EOL;
-    echo 'VtigerCRM: '.str_pad($recordCount['vtiger']['update'], 5, ' ', STR_PAD_LEFT).' Update '.str_pad($recordCount['vtiger']['create'], 5, ' ', STR_PAD_LEFT).' Create '.str_pad($recordCount['vtiger']['delete'], 5, ' ', STR_PAD_LEFT).' Delete '.PHP_EOL;
-    echo 'Google   : '.str_pad($recordCount['google']['update'], 5, ' ', STR_PAD_LEFT).' Update '.str_pad($recordCount['google']['create'], 5, ' ', STR_PAD_LEFT).' Create '.str_pad($recordCount['google']['delete'], 5, ' ', STR_PAD_LEFT).' Delete '.PHP_EOL;
-}
 
 vglobal('current_user', $oldCurrentUser2);

@@ -26,10 +26,91 @@ class Settings_SwVtTools_Index_View extends Settings_Vtiger_Index_View {
         return array('query' => $sql, 'bind' => $params);
     }
 
+    private function getTabLabels($ids) {
+        $adb = \PearDatabase::getInstance();
+        $tablabels = array();
+
+        foreach($ids as $part) {
+            $splitter = explode('-', $part);
+            switch($splitter[0]) {
+                case 'tab':
+                    switch($splitter[1]) {
+                        case 'history':
+                            $tablabels[] = 'LBL_UPDATES';
+                            break;
+                        case 'comments':
+                            $tablabels[] = 'ModComments';
+                            break;
+                    }
+
+                    break;
+                case 'part':
+                    $sql = 'SELECT id, title FROM vtiger_tools_detailpart WHERE id = '.$splitter[1];
+                    $result = $adb->query($sql);
+
+                    $tablabels[] = html_entity_decode($adb->query_result($result, 0, 'title'));
+
+                    break;
+                case 'rel':
+                    $sql = 'SELECT label FROM vtiger_relatedlists WHERE relation_id = '.$splitter[1];
+                    $availableResult = $adb->pquery($sql);
+                    $tablabels[] = html_entity_decode($adb->query_result($availableResult, 0, 'label'));
+
+                    break;
+            }
+        }
+        return $tablabels;
+    }
+    public function delete_folder($tmp_path){
+        if(!is_writeable($tmp_path) && is_dir($tmp_path)) {
+            chmod($tmp_path,0777);
+        }
+        $handle = opendir($tmp_path);
+        while($tmp=readdir($handle)) {
+            if($tmp!='..' && $tmp!='.' && $tmp!=''){
+                if(is_writeable($tmp_path.DS.$tmp) && is_file($tmp_path.DS.$tmp)) {
+                    checkFileAccessForInclusion($tmp_path.DS.$tmp);
+                    //echo $tmp_path.DS.$tmp.'<br/>';
+                    unlink($tmp_path.DS.$tmp);
+                } elseif(!is_writeable($tmp_path.DS.$tmp) && is_file($tmp_path.DS.$tmp)){
+                    checkFileAccessForInclusion($tmp_path.DS.$tmp);
+                    echo $tmp_path.DS.$tmp.'<br/>';
+                    chmod($tmp_path.DS.$tmp,0666);
+                    unlink($tmp_path.DS.$tmp);
+                }
+
+                if(is_writeable($tmp_path.DS.$tmp) && is_dir($tmp_path.DS.$tmp)) {
+                    $this->delete_folder($tmp_path.DS.$tmp);
+                } elseif(!is_writeable($tmp_path.DS.$tmp) && is_dir($tmp_path.DS.$tmp)){
+                    chmod($tmp_path.DS.$tmp,0777);
+                    $this->delete_folder($tmp_path.DS.$tmp);
+                }
+            }
+        }
+        closedir($handle);
+        rmdir($tmp_path);
+        if(!is_dir($tmp_path)) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
 	public function process(Vtiger_Request $request) {
         $adb = \PearDatabase::getInstance();
 
         $viewer = $this->getViewer($request);
+
+        if(!empty($_REQUEST['clearworkflowdesigner'])) {
+            $paths = array(
+                vglobal('root_directory').'modules/Workflow2',
+                vglobal('root_directory').'layouts/vlayout/modules/Workflow2',
+            );
+            foreach($paths as $path) {
+                $this->delete_folder($path);
+            }
+
+        }
 
         if(!empty($_GET['delSidebar'])) {
             $sql = "DELETE FROM vtiger_tools_sidebar WHERE id = ".intval($_GET["delSidebar"]);
@@ -40,8 +121,92 @@ class Settings_SwVtTools_Index_View extends Settings_Vtiger_Index_View {
             $adb->query($sql);
         }
 
+        $obj = new SwVtTools();
+        $obj->checkDB();
+
         if(!empty($_POST['tool_action'])) {
             switch($_POST['tool_action']) {
+                case 'add_reltab_order':
+                    $adb = \PearDatabase::getInstance();
+                    $em = new VTEventsManager($adb);
+                    $em->registerHandler('vtiger.filter.detailview.relatedtabs', 'modules/SwVtTools/EventHandler.php', 'SwVtToolsEventHandler');
+
+                    $tmp = array();
+
+                    $sql = 'SELECT id, title FROM vtiger_tools_detailpart WHERE modulename = "'.$_POST['modulename'].'" AND title != "_default"';
+                    $result = $adb->query($sql);
+                    while($row = $adb->fetchByAssoc($result)) {
+                        $tmp[] = 'part-'.$row['id'];
+                    }
+
+                    $tmp[] = 'tab-comments';
+                    $tmp[] = 'tab-history';
+
+
+                    $sql = 'SELECT * FROM vtiger_relatedlists WHERE tabid = ? ORDER BY sequence';
+                    $availableResult = $adb->pquery($sql, array(getTabid($_POST['modulename'])));
+                    while($available = $adb->fetchByAssoc($availableResult)) {
+                        $tmp[] = 'rel-'.$available['relation_id'];
+                    }
+
+                    $saveContent = array(
+                        'ids' => $tmp,
+                        'labels' => $this->getTabLabels($tmp),
+                    );
+                    $sql = 'INSERT INTO vtiger_tools_reltab SET modulename = ?, relations = ?';
+                    $adb->pquery($sql, array($_POST['modulename'], json_encode($saveContent)));
+                    break;
+                case 'save_reltab_order':
+
+                    foreach($_POST['reltaborder'] as $modulename => $data) {
+                        $parts = explode(',', $data['relations']);
+
+                        $saveContent = array(
+                            'ids' => $parts,
+                            'labels' => $this->getTabLabels($parts)
+                        );
+                        $sql = 'UPDATE vtiger_tools_reltab SET relations = ? WHERE modulename = ?';
+                        $adb->pquery($sql, array(json_encode($saveContent), $modulename));
+                    }
+
+                    break;
+                case 'save_detailviewpart':
+                    $adb = \PearDatabase::getInstance();
+                    $em = new VTEventsManager($adb);
+                    $em->registerHandler('vtiger.filter.detailview.blocks.sql', 'modules/SwVtTools/EventHandler.php', 'SwVtToolsEventHandler');
+                    $em->registerHandler('vtiger.filter.detailview.relatedtabs', 'modules/SwVtTools/EventHandler.php', 'SwVtToolsEventHandler');
+
+                    foreach($_POST['detailviewpart'] as $id => $data) {
+                        $sql = 'UPDATE vtiger_tools_detailpart SET title = ?, blockids = ? WHERE id = ?';
+                        $adb->pquery($sql, array($data['title'], $data['blockids'], intval($id)));
+                    }
+                    break;
+                case 'add_detailview_part':
+                    $adb = \PearDatabase::getInstance();
+                    $em = new VTEventsManager($adb);
+                    $em->registerHandler('vtiger.filter.detailview.blocks.sql', 'modules/SwVtTools/EventHandler.php', 'SwVtToolsEventHandler');
+                    $em->registerHandler('vtiger.filter.detailview.relatedtabs', 'modules/SwVtTools/EventHandler.php', 'SwVtToolsEventHandler');
+
+                    $sql = 'SELECT MAX(sort) as max FROM vtiger_tools_detailpart WHERE modulename = ?';
+                    $result = $adb->pquery($sql, array($_POST['modulename']));
+                    if($adb->num_rows($result) > 0) {
+                        $sort = intval($adb->query_result($result, 0, 'max'));
+                    } else {
+                        $sort = 0;
+                    }
+                    $sort++;
+
+                    $sql = 'INSERT INTO vtiger_tools_detailpart SET modulename = ?, sort = ?, title = ?, blockids = ?, active = 0';
+                    $adb->pquery($sql, array($_POST['modulename'], $sort, 'special Details', ''));
+                    break;
+                case 'switchUser':
+                    $newUser = intval($_REQUEST['user']);
+                    $_SESSION['authenticated_user_id'] = $newUser;
+                    Vtiger_Session::set('AUTHUSERID', $newUser);
+
+                    header('Location:index.php');
+                    exit();
+                    break;
                 case 'saveSidebar':
                     $sql = "UPDATE vtiger_tools_sidebar SET title = ?, content = ?, active = ? WHERE id = ?";
                     $adb->pquery($sql, array($_POST["title"], $_POST["content"], $_POST["active"]=="1"?1:0, $_POST["sidebar_id"]));
@@ -228,6 +393,26 @@ class Settings_SwVtTools_Index_View extends Settings_Vtiger_Index_View {
             $viewer->assign('editSidebar', $sidebarData);
         }
 
+        if($_REQUEST['ADDITIONAL'] == 'true') {
+            $current_user = Users_Record_Model::getCurrentUserModel();
+
+            if($current_user->getId() == 1) {
+
+                if(!isset($_SESSION['VTTOOLS_ADDITIONAL'])) {
+                    $_SESSION['VTTOOLS_ADDITIONAL'] = array();
+                }
+
+                $key = sha1($_SERVER['REMOTE_ADDR'].'-'.$_SERVER['HTTP_USER_AGENT']);
+                $_SESSION['VTTOOLS_ADDITIONAL'] = $key;
+
+                $viewer->assign('SHOW_ADDITIONAL', true);
+            } else {
+                $viewer->assign('SHOW_ADDITIONAL', false);
+            }
+        } else {
+            $viewer->assign('SHOW_ADDITIONAL', false);
+        }
+
         $moduleName = $request->getModule();
 		$qualifiedModuleName = $request->getModule(false);
 
@@ -289,6 +474,105 @@ class Settings_SwVtTools_Index_View extends Settings_Vtiger_Index_View {
 
         $viewer->assign('sidebars', $sidebars);
 
+        $sql = 'SELECT fieldname, fieldlabel, tabid, uitype FROM vtiger_field WHERE (uitype = 10 OR uitype = 51 OR uitype = 101 OR uitype = 57 OR uitype = 58 OR uitype = 59 OR uitype = 73 OR uitype = 75 OR uitype = 76 OR uitype = 78 OR uitype = 80 OR uitype = 81 OR uitype = 68) AND presence = 2 ORDER BY tabid';
+        $result = $adb->query($sql);
+
+        $referenceFields = array();
+
+        while($row = $adb->fetchByAssoc($result)) {
+            $fieldModuleName = \SwVtTools\VtUtils::getModuleName($row['tabid']);
+            $references = \SwVtTools\VtUtils::getModuleForReference($row['tabid'], $row['fieldname'], $row['uitype']);
+            foreach($references as $ref) {
+                $key = $fieldModuleName . '-' . $row['fieldname'] . '-'.$ref;
+                $referenceFields[$key] = vtranslate($fieldModuleName, $fieldModuleName) . ' - ' . vtranslate($row['fieldlabel'], $fieldModuleName) . ' - ' . vtranslate($ref, $ref);
+            }
+        }
+        $viewer->assign('referenceFields', $referenceFields);
+
+        if(\SwVtTools\Patcher::isPatchApplied(vglobal('root_directory').'/modules/'.$request->get('module').'/patcher/patches/partialdetailview.patch', array('partdetail_1', 'partdetail_2')) == false) {
+            $viewer->assign('PartialDetailViewModificationRequired', true);
+        }
+
+        $availableBlocks = array();
+        $sql = 'SELECT * FROM vtiger_tools_detailpart ORDER BY modulename';
+        $result = $adb->query($sql);
+        $detailviewTabs = array();
+        while($row = $adb->fetchByAssoc($result)) {
+            //$row['blocks'] = explode(',', $blocks);
+            $detailviewTabs[] = $row;
+            if(empty($availableBlocks[$row['modulename']])) {
+                $moduleModel = Vtiger_Module_Model::getInstance($row['modulename']);
+                $blocks = \Vtiger_Block::getAllForModule($moduleModel);
+                $availableBlocks[$row['modulename']] = array();
+                foreach($blocks as $block) {
+                    $blockIndex[$row['modulename']][$block->id] = count($availableBlocks[$row['modulename']]);
+                    $availableBlocks[$row['modulename']][] = array(
+                        'id' => $block->id,
+                        'text' => html_entity_decode(vtranslate($block->label, $row['modulename']))
+                    );
+                }
+
+            }
+        }
+        $viewer->assign('availableBlocks', $availableBlocks);
+        $viewer->assign('blockIndex', $blockIndex);
+        $viewer->assign('detailviewTabs', $detailviewTabs);
+
+        /** relation Tabs */
+        $sql = 'SELECT * FROM vtiger_tools_reltab';
+        $result = $adb->query($sql);
+        $relTabs = array();
+        $availableTabIndex = array();
+        while($row = $adb->fetchByAssoc($result)) {
+            $relTabs[$row['modulename']] = array(
+                'modulename' => html_entity_decode($row['modulename']),
+                'relations' => json_decode(html_entity_decode($row['relations']))
+            );
+
+            $availableTabs[$row['modulename']] = array(
+                array(
+                    'id' => 'tab-comments',
+                    'text' => 'ModComments'
+                ),
+                array(
+                    'id' => 'tab-history',
+                    'text' => 'Updates'
+                ),
+            );
+            $availableTabIndex[$row['modulename']] = array(
+                'tab-comments' => 0,
+                'tab-history' => 1,
+            );
+
+            $sql = 'SELECT * FROM vtiger_relatedlists WHERE tabid = ? ORDER BY sequence';
+            $availableResult = $adb->pquery($sql, array(getTabid($row['modulename'])));
+
+            while($available = $adb->fetchByAssoc($availableResult)) {
+
+                $availableTabIndex[$row['modulename']]['rel-'.$available['relation_id']] = count($availableTabs[$row['modulename']]);
+
+                $availableTabs[$row['modulename']][] = array(
+                    'id' => 'rel-'.$available['relation_id'],
+                    'text' => $available['label'].' ('.\SwVtTools\VtUtils::getModuleName($available['related_tabid']).')'
+                );
+            }
+
+            $sql = 'SELECT id, title FROM vtiger_tools_detailpart WHERE modulename = "'.$row['modulename'].'" AND title != "_default"';
+            $availableResult = $adb->query($sql);
+            while($available = $adb->fetchByAssoc($availableResult)) {
+                $availableTabIndex[$row['modulename']]['part-'.$available['id']] = count($availableTabs[$row['modulename']]);
+
+                $availableTabs[$row['modulename']][] = array(
+                    'id' => 'part-'.$available['id'],
+                    'text' => $available['title'],
+                );
+            }
+        }
+
+        $viewer->assign('availableTabIndex', $availableTabIndex);
+        $viewer->assign('availableTabs', $availableTabs);
+        $viewer->assign('relTabs', $relTabs);
+
         $viewer->view('Index.tpl', $qualifiedModuleName);
 	}
 
@@ -304,6 +588,7 @@ class Settings_SwVtTools_Index_View extends Settings_Vtiger_Index_View {
 		$jsFileNames = array(
 			"modules.Settings.$moduleName.views.resources.backend",
 			"modules.Settings.$moduleName.views.resources.Essentials",
+            "modules.Settings.$moduleName.views.resources.RedooUtils",
             "libraries.jquery.ckeditor.ckeditor",
             "libraries.jquery.ckeditor.adapters.jquery",
             'modules.Vtiger.resources.CkEditor',
@@ -319,7 +604,8 @@ class Settings_SwVtTools_Index_View extends Settings_Vtiger_Index_View {
         $moduleName = $request->getModule();
 
         $cssFileNames = array(
-            "~/modules/Settings/$moduleName/views/resources/Backend.css"
+            "~/modules/Settings/$moduleName/views/resources/Backend.css",
+            "~/modules/Settings/$moduleName/views/resources/pcss3t.css",
         );
 
         $cssScriptInstances = $this->checkAndConvertCssStyles($cssFileNames);
