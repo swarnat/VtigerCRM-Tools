@@ -2,9 +2,11 @@
 /**
  * Patcher Class to automatically Apply Patches
  *
- * @version 1.1
+ * @version 1.2
  *
  * Changelog
+ * 1.2 - 2017-05-27
+ * 		Remove Patch function
  * 1.1 - 2017-04-09
  * 		Add isPatchApplied function
  * 		Insert ReplaceWith Operation
@@ -14,15 +16,15 @@ namespace SwVtTools;
 
 class Patcher
 {
-	private $hash = '';
-	private $backupFolder = null;
-	private $messages = array();
+    private $hash = '';
+    private $backupFolder = null;
+    private $messages = array();
     private $basePath = null;
-	private $_OnlyRemove = false;
+    private $_OnlyRemove = false;
 
-	public function setHash($hash) {
-		$this->hash = $hash;
-	}
+    public function setHash($hash) {
+        $this->hash = $hash;
+    }
     public function setBackupFolder($folder) {
         if(!is_writeable($folder)) {
             throw new \Exception('Backup folder not writable!');
@@ -30,36 +32,36 @@ class Patcher
 
         $this->backupFolder = $folder;
     }
-	public function removePatchMode() {
-		$this->_OnlyRemove = true;
-	}
-	public static function isPatchApplied($patchFilename, $patchIds = array()) {
-		if(!is_array($patchIds)) $patchIds = array($patchIds);
+    public function removePatchMode() {
+        $this->_OnlyRemove = true;
+    }
+    public static function isPatchApplied($patchFilename, $patchIds = array()) {
+        if(!is_array($patchIds)) $patchIds = array($patchIds);
 
-		$array = XML2Array::createArray(file_get_contents($patchFilename));
-		$manipulations = $array['SWPatcher']['patch'];
-		if(!isset($manipulations[0]) && isset($manipulations['id'])) {
-			$manipulations = array($manipulations);
-		}
+        $array = XML2Array::createArray(file_get_contents($patchFilename));
+        $manipulations = $array['SWPatcher']['patch'];
+        if(!isset($manipulations[0]) && isset($manipulations['id'])) {
+            $manipulations = array($manipulations);
+        }
 
-		$patchIds = array_flip($patchIds);
-		foreach($manipulations as $modification) {
-			if(!isset($patchIds[$modification['id']])) continue;
+        $patchIds = array_flip($patchIds);
+        foreach($manipulations as $modification) {
+            if(!isset($patchIds[$modification['id']])) continue;
 
-			$filename = vglobal('root_directory').DIRECTORY_SEPARATOR.str_replace('/', DIRECTORY_SEPARATOR, $modification['file']);
-			$content = file_get_contents($filename);
+            $filename = vglobal('root_directory').DIRECTORY_SEPARATOR.str_replace('/', DIRECTORY_SEPARATOR, $modification['file']);
+            $content = file_get_contents($filename);
 
-			if(strpos($content, 'SWPATCHER-'.strtoupper(md5($modification['id'])).'-START') !== false) {
+            if(strpos($content, 'SWPATCHER-'.strtoupper(md5($modification['id'])).'-START') !== false) {
 
-				unset($patchIds[$modification['id']]);
-			}
-		}
+                unset($patchIds[$modification['id']]);
+            }
+        }
 
-		return empty($patchIds);
-	}
+        return empty($patchIds);
+    }
 
-	public function generateManipulationsView($patchFilename, $basePath) {
-		if(!is_readable($patchFilename)) {
+    public function generateManipulationsView($patchFilename, $basePath) {
+        if(!is_readable($patchFilename)) {
             throw new \Exception('Patch file not readable!');
         }
 
@@ -72,141 +74,149 @@ class Patcher
         }
 
         foreach($manipulations as $modification) {
-			//if($modification['file'] != 'modules/Vtiger/models/Field.php') continue;
+            //if($modification['file'] != 'modules/Vtiger/models/Field.php') continue;
 
-			$modification['orig_search'] = $modification['search'];
-			$modification['search'] = explode("[//]", $modification['search']);
-			foreach($modification['search'] as $index => $value) {
-				$modification['search'][$index] = trim($value);
-			}
-			$modification['search'] = implode("<br/>", $modification['search']);
+            $modification['orig_search'] = $modification['search'];
+            $modification['search'] = explode("[//]", $modification['search']);
+            foreach($modification['search'] as $index => $value) {
+                $modification['search'][$index] = trim($value);
+            }
+            $modification['search'] = implode("<br/>", $modification['search']);
 
-			$modification['file'] = str_replace('/', DIRECTORY_SEPARATOR, $modification['file']);
-			
-			$files[$modification['file']][] = $modification;
+            $modification['file'] = str_replace('/', DIRECTORY_SEPARATOR, $modification['file']);
+
+            $files[$modification['file']][] = $modification;
         }
 
         $filenames = array_keys($files);
-		sort($filenames);
-		
-		$html = '<strong>All filepaths are related to '.$basePath.'</strong><br/>';
-		$counter = 1;
-		foreach($filenames as $file) {
-			$html .= '<br/><h3>Open File: '.$file.'</h3>';
-			$html .= '<div style="padding:5px 10px;">';
+        sort($filenames);
 
-			if($this->_OnlyRemove == false) {
-				foreach ($files[$file] as $mod) {
-					$html .= '<div class="swpatcher_startmod" style="margin-top:10px;padding:5px 0;border-top:1px solid #aaa;font-size:15px;"><strong>' . $counter++ . '. Start Modification <em>' . $mod['id'] . '</em></strong></div>';
-					$html .= '<div style="margin-left:10px;">';
-					$mod['search'] = str_replace(array("\r", "\n"), '', $mod['search']);
-					$html .= '<strong>Search:</strong><br/>';
-					$html .= '<div class="swpatcher_search" style="margin:4px 10px;font-family:\'Courier New\';padding-left:  5px; border-left:3px solid #eee;">' . $mod['search'] . '</div>';
+        $html = '<strong>All filepaths are related to '.$basePath.'</strong><br/>';
+        $counter = 1;
+        foreach($filenames as $file) {
+            $html .= '<br/><h3>Open File: '.$file.'</h3>';
+            $html .= '<div style="padding:5px 10px;">';
 
-					switch (strtolower($mod['method'])) {
-						case 'insertbefore':
-							$html .= '<strong>insert before:</strong>';
-							break;
-						case 'insertafter':
-							$html .= '<strong>insert after:</strong>';
-							break;
-						case 'replacewith':
-							$html .= '<strong>replace with:</strong>';
-							break;
-					}
+            if($this->_OnlyRemove == false) {
+                foreach ($files[$file] as $mod) {
+                    $html .= '<div class="swpatcher_startmod" style="margin-top:10px;padding:5px 10px;background-color:#6699cc;color:#ffffff;border-top:1px solid #aaa;font-size:15px;"><strong>' . $counter++ . '. Start Modification <em>' . $mod['id'] . '</em></strong></div>';
+                    if(!empty($mod['optional'])) {
+                        $html .= '<em>This modification is optional and is not required for module feature. No problem if it don\'t exist in your system.</em>';
+                    }
 
-					$mod['modification'] = $this->getModificationContent($mod);
+                    $html .= '<div style="margin-left:10px;">';
+                    $mod['search'] = str_replace(array("\r", "\n"), '', $mod['search']);
+                    $html .= '<strong>Search:</strong><br/>';
+                    $html .= '<div class="swpatcher_search" style="margin:4px 10px;font-family:\'Courier New\';padding-left:  5px; border-left:3px solid #eee;">' . $mod['search'] . '</div>';
 
-					$html .= '<div class="swpatcher_search" style="margin:4px 10px;white-space:pre;font-family:\'Courier New\';padding-left:  5px; border-left:3px solid #eee;">' . $mod['modification'] . '</div>';
-					$html .= '</div>';
-				}
-			} else {
-				foreach ($files[$file] as $mod) {
-					$html .= '<div class="swpatcher_startmod" style="margin-top:10px;padding:5px 0;border-top:1px solid #aaa;font-size:15px;"><strong>' . $counter++ . '. Start Modification <em>' . $mod['id'] . '</em></strong></div>';
-					$html .= '<div style="margin-left:10px;">';
-					$mod['search'] = str_replace(array("\r", "\n"), '', $mod['search']);
-					$html .= '<strong>Search:</strong><br/>';
+                    switch (strtolower($mod['method'])) {
+                        case 'insertbefore':
+                            $html .= '<strong>insert before:</strong>';
+                            break;
+                        case 'insertafter':
+                            $html .= '<strong>insert after:</strong>';
+                            break;
+                        case 'replacewith':
+                            $html .= '<strong>replace with:</strong>';
+                            break;
+                    }
 
-					//$modification = $this->getModificationContent($mod, false);
+                    $mod['modification'] = $this->getModificationContent($mod);
 
-					$html .= '<div class="swpatcher_search" style="margin:4px 10px;font-family:\'Courier New\';padding-left:  5px; border-left:3px solid #eee;">' . '/**SWPATCHER-'.strtoupper(md5($mod['id'])).'-START-'.$this->hash.'**/' . '</div>';
+                    $html .= '<div class="swpatcher_search" style="margin:4px 10px;white-space:pre;font-family:\'Courier New\';padding-left:  5px; border-left:3px solid #eee;">' . $mod['modification'] . '</div>';
+                    $html .= '</div>';
+                }
+            } else {
+                foreach ($files[$file] as $mod) {
+                    $html .= '<div class="swpatcher_startmod" style="margin-top:10px;padding:5px 0;background-color:#6699cc;color:#ffffff;border-top:1px solid #aaa;font-size:15px;"><strong>' . $counter++ . '. Start Modification <em>' . $mod['id'] . '</em></strong></div>';
+                    if(!empty($mod['optional'])) {
+                        $html .= '<em>This modification is optional and is not required for module feature. No problem if it don\'t exist in your system.</em>';
+                    }
 
-					switch (strtolower($mod['method'])) {
-						case 'insertbefore':
-						case 'insertafter':
-							$html .= '<strong>Delete until</strong>';
+                    $html .= '<div style="margin-left:10px;">';
+                    $mod['search'] = str_replace(array("\r", "\n"), '', $mod['search']);
+                    $html .= '<strong>Search:</strong><br/>';
 
-							$html .= '<div class="swpatcher_search" style="margin:4px 10px;white-space:pre;font-family:\'Courier New\';padding-left:  5px; border-left:3px solid #eee;">' . '/**SWPATCHER-'.strtoupper(md5($mod['id'])).'-FINISH**/' . '</div>';
-							break;
-						case 'replacewith':
-							$html .= '<strong>Remove until:</strong>';
-							$untilStr = $mod['search'];
+                    //$modification = $this->getModificationContent($mod, false);
 
-							$html .= '<div class="swpatcher_search" style="margin:4px 10px;white-space:pre;font-family:\'Courier New\';padding-left:  5px; border-left:3px solid #eee;">' . '/**SWPATCHER-'.strtoupper(md5($mod['id'])).'-FINISH**/' . '</div>';
+                    $html .= '<div class="swpatcher_search" style="margin:4px 10px;font-family:\'Courier New\';padding-left:  5px; border-left:3px solid #eee;">' . '/**SWPATCHER-'.strtoupper(md5($mod['id'])).'-START-'.$this->hash.'**/' . '</div>';
 
-							$html .= '<strong>Replace with:</strong>';
-							$html .= '<div class="swpatcher_search" style="margin:4px 10px;white-space:pre;font-family:\'Courier New\';padding-left:  5px; border-left:3px solid #eee;">' . $untilStr . '</div>';
-							break;
-					}
+                    switch (strtolower($mod['method'])) {
+                        case 'insertbefore':
+                        case 'insertafter':
+                            $html .= '<strong>Delete until</strong>';
+
+                            $html .= '<div class="swpatcher_search" style="margin:4px 10px;white-space:pre;font-family:\'Courier New\';padding-left:  5px; border-left:3px solid #eee;">' . '/**SWPATCHER-'.strtoupper(md5($mod['id'])).'-FINISH**/' . '</div>';
+                            break;
+                        case 'replacewith':
+                            $html .= '<strong>Remove until:</strong>';
+                            $untilStr = $mod['search'];
+
+                            $html .= '<div class="swpatcher_search" style="margin:4px 10px;white-space:pre;font-family:\'Courier New\';padding-left:  5px; border-left:3px solid #eee;">' . '/**SWPATCHER-'.strtoupper(md5($mod['id'])).'-FINISH**/' . '</div>';
+
+                            $html .= '<strong>Replace with:</strong>';
+                            $html .= '<div class="swpatcher_search" style="margin:4px 10px;white-space:pre;font-family:\'Courier New\';padding-left:  5px; border-left:3px solid #eee;">' . $untilStr . '</div>';
+                            break;
+                    }
 
 
-					$html .= '</div>';
-				}
-			}
-				
-			$html .= '</div>';
-		}
-		
-		return $html;
-	}
+                    $html .= '</div>';
+                }
+            }
 
-	private function getModificationContent($modification, $asArray = false) {
-		$head = array(
-			'/**SWPATCHER-'.strtoupper(md5($modification['id'])).'-START-'.$this->hash.'**/',
-			'/** Don\'t remove the Start and Finish Markup! Modified: '.date('Y-m-d H:i:s').' by '.__NAMESPACE__.' **/',
-		);
-		$foot = array(
-			'/**SWPATCHER-'.strtoupper(md5($modification['id'])).'-FINISH**/',
-		);
+            $html .= '</div>';
+        }
 
-		if($asArray === true) {
-			$return = array_merge($head, $modification['modification']);
-		} else {
-			$return = implode(PHP_EOL, $head).PHP_EOL.$modification['modification'].PHP_EOL;
-		}
+        return $html;
+    }
 
-		switch(strtolower($modification['method'])) {
-			case 'replacewith':
-				$parts = explode("[//]", $modification['orig_search']);
-				$modification['modification'] .= PHP_EOL;
-				foreach($parts as $line) {
-					if($asArray === true) {
-						$return[] = '//REPLACED-' . strtoupper(md5($modification['id'])) . '// ' . trim($line);
-					} else {
-						$return .= '//REPLACED-' . strtoupper(md5($modification['id'])) . '// ' . trim($line).PHP_EOL;
-					}
-				}
+    private function getModificationContent($modification, $asArray = false) {
+        $head = array(
+            '/**SWPATCHER-'.strtoupper(md5($modification['id'])).'-START-'.$this->hash.'**/',
+            '/** Don\'t remove the Start and Finish Markup! Modified: '.date('Y-m-d H:i:s').' by '.__NAMESPACE__.' **/',
+        );
+        $foot = array(
+            '/**SWPATCHER-'.strtoupper(md5($modification['id'])).'-FINISH**/',
+        );
 
-				break;
-		}
+        if($asArray === true) {
+            $return = array_merge($head, $modification['modification']);
+        } else {
+            $return = implode(PHP_EOL, $head).PHP_EOL.$modification['modification'].PHP_EOL;
+        }
 
-		if($asArray === true) {
-			$return = array_merge($return, $foot);
-		} else {
-			$return .= implode(PHP_EOL, $foot);
-		}
+        switch(strtolower($modification['method'])) {
+            case 'replacewith':
+                $parts = explode("[//]", $modification['orig_search']);
+                $modification['modification'] .= PHP_EOL;
+                foreach($parts as $line) {
+                    if($asArray === true) {
+                        $return[] = '//REPLACED-' . strtoupper(md5($modification['id'])) . '// ' . trim($line);
+                    } else {
+                        $return .= '//REPLACED-' . strtoupper(md5($modification['id'])) . '// ' . trim($line).PHP_EOL;
+                    }
+                }
 
-		return $return;
-	}
+                break;
+        }
+
+        if($asArray === true) {
+            $return = array_merge($return, $foot);
+        } else {
+            $return .= implode(PHP_EOL, $foot);
+        }
+
+        return $return;
+    }
 
     public function applyPatchFile($patchFilename, $basePath, $dryRun = true) {
-		$this->basePath = $basePath;
+        $this->basePath = $basePath;
 
         if(empty($this->hash)) {
-			$this->hash = md5(microtime(true).mt_rand(100000, 999999));
-		}
-		
-		if(!is_readable($patchFilename)) {
+            $this->hash = md5(microtime(true).mt_rand(100000, 999999));
+        }
+
+        if(!is_readable($patchFilename)) {
             throw new \Exception('Patch file not readable!');
         }
 
@@ -223,24 +233,33 @@ class Patcher
         }
 
         foreach($manipulations as $modification) {
-			//if($modification['file'] != 'modules/Vtiger/models/Field.php') continue;
+            //if($modification['file'] != 'modules/Vtiger/models/Field.php') continue;
 
-			$modification['orig_search'] = $modification['search'];
-			$modification['search'] = explode("[//]", $modification['search']);
-			foreach($modification['search'] as $index => $value) {
-				$modification['search'][$index] = trim($value);
-			}
+            $modification['orig_search'] = $modification['search'];
+            $modification['search'] = explode("[//]", $modification['search']);
+            foreach($modification['search'] as $index => $value) {
+                $modification['search'][$index] = trim($value);
+            }
 
-			$modification['file'] = str_replace('/', DIRECTORY_SEPARATOR, $modification['file']);
-			
-			$files[$modification['file']][] = $modification;
+            $modification['file'] = str_replace('/', DIRECTORY_SEPARATOR, $modification['file']);
+
+            $files[$modification['file']][] = $modification;
         }
 
         $filenames = array_keys($files);
 
         foreach($filenames as $file) {
             if(!file_exists($basePath.$file)) {
-                $errors[] = $basePath.$file . ' not existing';
+                $mandatory = false;
+                foreach($files[$file] as $mod) {
+                    if(empty($mod['optional'])) {
+                        $mandatory = true;
+                        break;
+                    }
+                }
+                if($mandatory === true) {
+                    $errors[] = $basePath . $file . ' not existing';
+                }
             } elseif(!is_writeable($basePath.$file)) {
                 $errors[] = $basePath.$file . ' have no write Permission for Webserver';
             } elseif(!is_writeable(dirname($basePath.$file))) {
@@ -252,14 +271,14 @@ class Patcher
             try {
                 $fileCounter = $this->_applyFile($fileName, $modification, $dryRun);
                 if($fileCounter > 0) {
-					$this->messages[] = 'added '.$fileCounter.' lines to '.$fileName;
-				}
+                    $this->messages[] = 'added '.$fileCounter.' lines to '.$fileName;
+                }
             } catch (\Exception $exp) {
                 $errors[] = '['.$fileName.'] '.$exp->getMessage();
             }
         }
 
-		$success = true;
+        $success = true;
         if(count($errors) > 0) {
             $success = false;
         }
@@ -273,7 +292,7 @@ class Patcher
         );
     }
 
-	public function restorePatchFile($patchFilename, $basePath, $restoreHash, $backupFolder = false) {
+    public function restorePatchFile($patchFilename, $basePath, $restoreHash, $backupFolder = false) {
         $manipulations = array();
         $this->basePath = $basePath;
 
@@ -289,12 +308,12 @@ class Patcher
         }
 
         foreach($manipulations as $modification) {
-			$files[$modification['file']][] = $modification;
+            $files[$modification['file']][] = $modification;
         }
 
         $filenames = array_keys($files);
-		
-		foreach($filenames as $file) {
+
+        foreach($filenames as $file) {
 
             if($backupFolder !== false) {
                 $backupFilename = $backupFolder . DIRECTORY_SEPARATOR . $file;
@@ -306,11 +325,11 @@ class Patcher
                 copy($basePath.'/'.$file, $backupFilename);
             }
 
-			$this->_restoreBackup($file, $restoreHash, $backupFolder);
-		}
+            $this->_restoreBackup($file, $restoreHash, $backupFolder);
+        }
 
-	}
-	private function _restoreBackup($filename, $hash, $corruptBackupFolder) {
+    }
+    private function _restoreBackup($filename, $hash, $corruptBackupFolder) {
 
         if($this->backupFolder === null) {
             $backupFilename = $filename.'.'.$this->hash.'.backup';
@@ -325,86 +344,91 @@ class Patcher
 
             echo '<p class="success">Successfuly Restore '.$filename.'</p>';
         }
-	}
+    }
 
-	private function _removeModification($filename, $modifications, $dryRun) {
-		$changed = false;
+    private function _removeModification($filename, $modifications, $dryRun) {
+        $changed = false;
 
-		$content = file_get_contents($filename);
-		$updateCounter = 0;
+        if(!file_exists($filename)) return;
 
-		foreach($modifications as $index => $mod) {
+        $content = file_get_contents($filename);
+        $updateCounter = 0;
 
-			if(strpos($content, '/**SWPATCHER-'.strtoupper(md5($mod['id'])).'-START') !== false) {
-				$changed = true;
-				$mod['modification'] = explode('\r\n', $mod['modification']);
-				//$this->messages[] = '['.$filename.'] Update '.$mod['id'].'';
-				$this->_ReplaceMod = $mod;
-				switch (strtolower($mod['method'])) {
-					case 'insertbefore':
-					case 'insertafter':
-						$content = preg_replace('/\/\*\*SWPATCHER-'.strtoupper(md5($mod['id'])).'-START-(.*?)\*\*\\/(.*)\/\*\*SWPATCHER-'.strtoupper(md5($mod['id'])).'-FINISH\*\*\//s', '', $content);
-						break;
-					case 'replacewith':
-						$content = preg_replace('/\/\*\*SWPATCHER-'.strtoupper(md5($mod['id'])).'-START-(.*?)\*\*\\/(.*)\/\*\*SWPATCHER-'.strtoupper(md5($mod['id'])).'-FINISH\*\*\//s', $mod['search'], $content);
-						break;
-				}
 
-				$updateCounter++;
-				unset($modifications[$index]);
-			}
-		}
+        foreach($modifications as $index => $mod) {
 
-		if($updateCounter > 0) {
-			$this->messages[] = '['.$filename.'] Remove '.$updateCounter.' modification/s';
-		}
-
-		if($changed == true && $dryRun == false) {
-			file_put_contents($filename, $content);
-		}
-
-		return $modifications;
-	}
-
-	private $_ReplaceMod = false;
-	private function _clearOldModifications($filename, $modifications, $dryRun) {
-		$changed = false;
-
-		$content = file_get_contents($filename);
-		$updateCounter = 0;
-		
-		foreach($modifications as $index => $mod) {
-
-			if(strpos($content, '/**SWPATCHER-'.strtoupper(md5($mod['id'])).'-START') !== false) {
-				$changed = true;
-				$mod['modification'] = explode('\r\n', $mod['modification']);
-				//$this->messages[] = '['.$filename.'] Update '.$mod['id'].'';
+            if(strpos($content, '/**SWPATCHER-'.strtoupper(md5($mod['id'])).'-START') !== false) {
+                $changed = true;
+                $mod['modification'] = explode('\r\n', $mod['modification']);
+                //$this->messages[] = '['.$filename.'] Update '.$mod['id'].'';
                 $this->_ReplaceMod = $mod;
-				$content = preg_replace_callback('/\/\*\*SWPATCHER-'.strtoupper(md5($mod['id'])).'-START-(.*?)\*\*\\/(.*)\/\*\*SWPATCHER-'.strtoupper(md5($mod['id'])).'-FINISH\*\*\//s', array($this, 'replace_old_modification'), $content);
+                switch (strtolower($mod['method'])) {
+                    case 'insertbefore':
+                    case 'insertafter':
+                        $content = preg_replace('/\/\*\*SWPATCHER-'.strtoupper(md5($mod['id'])).'-START-(.*?)\*\*\\/(.*)\/\*\*SWPATCHER-'.strtoupper(md5($mod['id'])).'-FINISH\*\*\//s', '', $content);
+                        break;
+                    case 'replacewith':
+                        $content = preg_replace('/\/\*\*SWPATCHER-'.strtoupper(md5($mod['id'])).'-START-(.*?)\*\*\\/(.*)\/\*\*SWPATCHER-'.strtoupper(md5($mod['id'])).'-FINISH\*\*\//s', $mod['search'], $content);
+                        break;
+                }
 
-				$updateCounter++;
-				unset($modifications[$index]);
-			}
-		}
+                $updateCounter++;
+                unset($modifications[$index]);
+            }
+        }
 
-		if($updateCounter > 0) {
+        if($updateCounter > 0) {
+            $this->messages[] = '['.$filename.'] Remove '.$updateCounter.' modification/s';
+        }
+
+        if($changed == true && $dryRun == false) {
+            file_put_contents($filename, $content);
+        }
+
+        return $modifications;
+    }
+
+    private $_ReplaceMod = false;
+    private function _clearOldModifications($filename, $modifications, $dryRun) {
+        $changed = false;
+        if(!file_exists($filename)) return;
+        $content = file_get_contents($filename);
+        $updateCounter = 0;
+
+        foreach($modifications as $index => $mod) {
+
+            if(strpos($content, '/**SWPATCHER-'.strtoupper(md5($mod['id'])).'-START') !== false) {
+                $changed = true;
+                $mod['modification'] = explode('\r\n', $mod['modification']);
+                //$this->messages[] = '['.$filename.'] Update '.$mod['id'].'';
+                $this->_ReplaceMod = $mod;
+                $content = preg_replace_callback('/\/\*\*SWPATCHER-'.strtoupper(md5($mod['id'])).'-START-(.*?)\*\*\\/(.*)\/\*\*SWPATCHER-'.strtoupper(md5($mod['id'])).'-FINISH\*\*\//s', array($this, 'replace_old_modification'), $content);
+
+                $updateCounter++;
+                unset($modifications[$index]);
+            }
+        }
+
+        if($updateCounter > 0) {
             $this->messages[] = '['.$filename.'] Update '.$updateCounter.' modification/s';
         }
 
-		if($changed == true && $dryRun == false) {
-			file_put_contents($filename, $content);
-		}
+        if($changed == true && $dryRun == false) {
+            file_put_contents($filename, $content);
+        }
 
-		return $modifications;
-	}
+        return $modifications;
+    }
 
-	private function replace_old_modification($matches) {
+    private function replace_old_modification($matches) {
         $mod = $this->_ReplaceMod;
 
-		return implode(PHP_EOL, $this->getModificationContent($mod, true));
-	}
+        return implode(PHP_EOL, $this->getModificationContent($mod, true));
+    }
 
     private function backupFile($filename) {
+        if(!file_exists($filename)) return;
+
         if($this->backupFolder === null) {
             copy($filename, $filename.'.'.$this->hash.'.backup');
         } else {
@@ -413,6 +437,10 @@ class Patcher
             $filename = str_replace($this->basePath, '', $filename);
             $filename = trim($filename, DIRECTORY_SEPARATOR);
             $directoryName = dirname($filename);
+
+            if(file_exists($backupFolder .  $filename)) {
+                return;
+            }
 
             if(!file_exists($backupFolder .  $directoryName)) {
                 mkdir($backupFolder .  $directoryName, 0777, true);
@@ -429,16 +457,16 @@ class Patcher
             $this->backupFile($filename);
         }
 
-		if($this->_OnlyRemove === true) {
-			$this->_removeModification($filename, $modifications, $dryRun);
-			return;
-		}
+        if($this->_OnlyRemove === true) {
+            $this->_removeModification($filename, $modifications, $dryRun);
+            return;
+        }
 
-		$modifications = $this->_clearOldModifications($filename, $modifications, $dryRun);
+        $modifications = $this->_clearOldModifications($filename, $modifications, $dryRun);
 
-		if(count($modifications) == 0) {
-			return 0;
-		}		
+        if(count($modifications) == 0) {
+            return 0;
+        }
         $content = file_get_contents($filename);
 
         foreach($modifications as $index => $mod) {
@@ -448,66 +476,127 @@ class Patcher
                 }
             }
 
-			$pos = 0;
-			$maxNextPos = 0;
-			$maxAllowedSpaces = 0;
-			foreach($mod['search'] as $search) {
-				
-				$pos = strpos($content, $search, $pos);
+            if(!empty($mod['function'])) {
+                $correctFunction = null;
+            } else {
+                $correctFunction = true;
+            }
 
-				if($maxNextPos > 0 && $pos > $maxNextPos) {
-					throw new \Exception('Can not found complete Anchor: '.$mod['id']);
-				}
+            $pos = 0;
+            $maxNextPos = 0;
+            $maxAllowedSpaces = 0;
+            foreach($mod['search'] as $search) {
+                if(empty($mod['function']) || $correctFunction == true) {
+                    $pos = strpos($content, $search, $pos);
+                } else {
+                    $matches = array();
+                    preg_match_all('/function[\s\n]+(\S+)[\s\n]*\(/', $content, $matches, PREG_OFFSET_CAPTURE);
 
-				$maxNextPosSpacesCheck = substr($content, $pos + strlen($search), 60);
-				preg_match('/^(\s+)/',$maxNextPosSpacesCheck,$matches);
-				if(!empty($matches)) {
-					$allowedSpace = strlen($matches[1]) + 6;
-				} else {
-					$allowedSpace = 6;
-				}
-				if($allowedSpace > $maxAllowedSpaces) {
-					$maxAllowedSpaces = $allowedSpace;
-				}
+                    $functionFound = false;
+                    foreach($matches[1] as $index2 => $functionName) {
+                        if($functionName[0] == $mod['function']) {
+                            $functionFound = true;
+                            $pos = strpos($content, $search, $functionName[1]);
+                            if(isset($matches[1][$index2 + 1])) {
+                                $maxNextPos = $matches[1][$index2 + 1][1];
+                            } else {
+                                $maxNextPos = 0;
+                            }
+                            break;
+                        }
+                    }
+                    if($functionFound == false) {
+                        throw new \Exception('Can not found function '.$mod['function']);
+                    }
+                    $correctFunction = true;
+                }
 
-				$maxNextPos = $pos + strlen($search) + $allowedSpace;
-				if($pos === false) {
-					throw new \Exception('Can not found Anchor: '.$mod['id']);
-				}
-				
-			}
-			
-			$pos2 = $pos;
-			$substr_count = substr_count($content, $mod['search'][0]) - 1;
-			//var_dump('$substr_count',$substr_count);
-			for($i = 0; $i < $substr_count;$i++) {
-				$maxNextPos = strlen($content);
 
-				$complete = true;
-				foreach($mod['search'] as $search) {
-//var_dump('startSearch: '.$pos2);
-					$pos2 = strpos($content, $search, $pos2);
-//var_dump($search, $pos2, $maxNextPos);
-					if($pos2 === false) {
-						$complete = false;
-						$pos2 = $maxNextPos;
-						break;
-					}
-					if($pos2 !== false && $maxNextPos < $pos2) {
-						$complete = false;
-						$pos2 = $maxNextPos;
-						break;
-					}
+                if($maxNextPos > 0 && $pos > $maxNextPos && empty($mod['optional'])) {
+                    throw new \Exception('Can not found complete Anchor: '.$mod['id']);
+                }
 
-					$maxNextPos = $pos2 + strlen($search) + $maxAllowedSpaces;
-				}
+                $maxNextPosSpacesCheck = substr($content, $pos + strlen($search), 60);
+                preg_match('/^(\s+)/',$maxNextPosSpacesCheck,$matches);
+                if(!empty($matches)) {
+                    $allowedSpace = strlen($matches[1]) + 6;
+                } else {
+                    $allowedSpace = 6;
+                }
+                if($allowedSpace > $maxAllowedSpaces) {
+                    $maxAllowedSpaces = $allowedSpace;
+                }
 
-				if($complete == true) {
-					throw new \Exception('Found Anchor twice: '.$mod['id']);
-				}
-				
-			}
-			/*if(strpos($content, $mod['search']) === false) {
+                $maxNextPos = $pos + strlen($search) + $allowedSpace;
+                if($pos === false && empty($mod['optional'])) {
+                    throw new \Exception('Can not found Anchor: '.$mod['id']);
+                }
+
+            }
+
+            $pos2 = $pos;
+            $substr_count = substr_count($content, $mod['search'][0]) - 1;
+            //var_dump('$substr_count',$substr_count);
+            for($i = 0; $i < $substr_count;$i++) {
+                $maxNextPos = strlen($content);
+
+                if(!empty($mod['function'])) {
+                    $correctFunction = null;
+                } else {
+                    $correctFunction = true;
+                }
+
+                $complete = true;
+                foreach($mod['search'] as $search) {
+                    if(empty($mod['function']) || $correctFunction == true) {
+
+                        $pos = strpos($content, $search, $pos);
+                    } else {
+                        $matches = array();
+                        preg_match_all('/function[\s\n]+(\S+)[\s\n]*\(/', $content, $matches, PREG_OFFSET_CAPTURE, $pos2);
+
+                        $functionFound = false;
+                        foreach($matches[1] as $index2 => $functionName) {
+                            if($functionName[0] == $mod['function']) {
+                                $functionFound = true;
+                                $pos = strpos($content, $search, $functionName[1]);
+                                if(isset($matches[1][$index2 + 1])) {
+                                    $maxNextPos = $matches[1][$index2 + 1][1];
+                                } else {
+                                    $maxNextPos = 1;
+                                }
+                                break;
+                            }
+                        }
+
+                        if($functionFound == false) {
+                            $complete = false;
+                            $pos2 = $maxNextPos;
+                            break;
+                        }
+                        $correctFunction = true;
+                    }
+
+                    if($pos2 === false) {
+                        $complete = false;
+                        $pos2 = $maxNextPos;
+                        break;
+                    }
+                    if($pos2 !== false && $maxNextPos < $pos2) {
+                        $complete = false;
+                        $pos2 = $maxNextPos;
+                        break;
+                    }
+
+                    $maxNextPos = $pos2 + strlen($search) + $maxAllowedSpaces;
+                }
+
+                if($complete == true) {
+                    throw new \Exception('Found Anchor twice: '.$mod['id']);
+                }
+
+            }
+            /*if(strpos($content, $mod['search']) === false) {
                 throw new \Exception('Can not found Anchor: '.$mod['id']);
             }*/
             /*if(substr_count($content, $mod['search']) > 1) {
@@ -517,7 +606,7 @@ class Patcher
             $modifications[$index]['modification'] = explode('\r\n', $mod['modification']);
         }
 
-		
+
         unset($content);
         $content = file($filename, FILE_IGNORE_NEW_LINES);
         $searccontent = $content;
@@ -525,16 +614,26 @@ class Patcher
             $searccontent[$index] = trim($line);
         }
 
+        $functionFound = true;
         $searchSequences = array();
         foreach($modifications as $mod) {
-			$searchSequences[$mod['id']] = '/**SWPATCHER-'.strtoupper(md5($mod['id'])).'-START-'.$this->hash.'**/';
+            $searchSequences[$mod['id']] = '/**SWPATCHER-'.strtoupper(md5($mod['id'])).'-START-'.$this->hash.'**/';
+            $functionFound = null;
             foreach($content as $ln => $line) {
+                if(!empty($mod['function']) && $functionFound == null) {
+                    if(strpos($line, 'function '.$mod['function']) !== false) {
+                        $functionFound = true;
+                    } else {
+                        continue;
+                    }
+                }
+
                 if($searccontent[$ln] == $mod['search'][0]) {
                     $found = true;
-					$length = 0;
+                    $length = 0;
                     if(count($mod['search']) > 1) {
                         foreach($mod['search'] as $length => $search) {
-							if($searccontent[$ln + $length] != $search) {
+                            if($searccontent[$ln + $length] != $search) {
                                 $found = false;
                                 break;
                             }
@@ -548,26 +647,26 @@ class Patcher
 //						$mod['modification'][] = '';
 //						$mod['modification'][] = '/**SWPATCHER-'.strtoupper(md5($mod['id'])).'-FINISH**/';
 
-						switch(strtolower($mod['method'])) {
-							case 'insertbefore':
-								$insertPosition = $ln;
-							break;
-							case 'insertafter':
-								$insertPosition = $ln + $length + 1;
-							break;
-							case 'replacewith':
-								$insertPosition = $ln;
+                        switch(strtolower($mod['method'])) {
+                            case 'insertbefore':
+                                $insertPosition = $ln;
+                                break;
+                            case 'insertafter':
+                                $insertPosition = $ln + $length + 1;
+                                break;
+                            case 'replacewith':
+                                $insertPosition = $ln;
 
-								for($i = 0; $i < count($mod['search']); $i++) {
-									unset($content[$insertPosition + $i]);
-									unset($searccontent[$insertPosition + $i]);
-								}
+                                for($i = 0; $i < count($mod['search']); $i++) {
+                                    unset($content[$insertPosition + $i]);
+                                    unset($searccontent[$insertPosition + $i]);
+                                }
 
-								break;
-						}
+                                break;
+                        }
 
-						$content = $this->insertIntoArray($content, $insertPosition, $this->getModificationContent($mod, true));
-						$searccontent = $this->insertIntoArray($searccontent, $insertPosition, $this->getModificationContent($mod, true));
+                        $content = $this->insertIntoArray($content, $insertPosition, $this->getModificationContent($mod, true));
+                        $searccontent = $this->insertIntoArray($searccontent, $insertPosition, $this->getModificationContent($mod, true));
 
                         $fileCounter += count($mod['modification']);
                         break;
@@ -595,34 +694,34 @@ class Patcher
     // http://stackoverflow.com/questions/3353745/how-to-insert-element-into-array-to-specific-position
     // modifications by Stefan Warnat
     private  function insertIntoArray($array, $index, $val)
-       {
-           $size = count($array);
+    {
+        $size = count($array);
 
-           if (!is_int($index) || $index < 0 || $index > $size)
-           {
-               return -1;
-           }
-           else
-           {
-               $temp = array_slice($array, 0, $index);
+        if (!is_int($index) || $index < 0 || $index > $size)
+        {
+            return -1;
+        }
+        else
+        {
+            $temp = array_slice($array, 0, $index);
 
-               if(!is_array($val)) {
-                   $temp[] = $val;
-               } else {
-                   foreach($val as $line) {
-                       $temp[] = $line;
-                   }
-               }
+            if(!is_array($val)) {
+                $temp[] = $val;
+            } else {
+                foreach($val as $line) {
+                    $temp[] = $line;
+                }
+            }
 
-               return array_merge($temp, array_slice($array, $index, $size));
-           }
-       }
+            return array_merge($temp, array_slice($array, $index, $size));
+        }
+    }
 }
 
 class XML2Array {
 
     private static $xml = null;
-	private static $encoding = 'UTF-8';
+    private static $encoding = 'UTF-8';
 
     /**
      * Initialize the root XML node [optional]
@@ -633,7 +732,7 @@ class XML2Array {
     public static function init($version = '1.0', $encoding = 'UTF-8', $format_output = true) {
         self::$xml = new \DOMDocument($version, $encoding);
         self::$xml->formatOutput = $format_output;
-		self::$encoding = $encoding;
+        self::$encoding = $encoding;
     }
 
     /**
@@ -644,18 +743,18 @@ class XML2Array {
      */
     public static function &createArray($input_xml) {
         $xml = self::getXMLRoot();
-		if(is_string($input_xml)) {
-			$parsed = $xml->loadXML($input_xml);
-			if(!$parsed) {
-				throw new \Exception('[XML2Array] Error parsing the XML string.');
-			}
-		} else {
-			if(get_class($input_xml) != 'DOMDocument') {
-				throw new \Exception('[XML2Array] The input XML object should be of type: DOMDocument.');
-			}
-			$xml = self::$xml = $input_xml;
-		}
-		$array[$xml->documentElement->tagName] = self::convert($xml->documentElement);
+        if(is_string($input_xml)) {
+            $parsed = $xml->loadXML($input_xml);
+            if(!$parsed) {
+                throw new \Exception('[XML2Array] Error parsing the XML string.');
+            }
+        } else {
+            if(get_class($input_xml) != 'DOMDocument') {
+                throw new \Exception('[XML2Array] The input XML object should be of type: DOMDocument.');
+            }
+            $xml = self::$xml = $input_xml;
+        }
+        $array[$xml->documentElement->tagName] = self::convert($xml->documentElement);
         self::$xml = null;    // clear the xml node in the class for 2nd time use.
         return $array;
     }
@@ -666,67 +765,67 @@ class XML2Array {
      * @return mixed
      */
     private static function &convert($node) {
-		$output = array();
+        $output = array();
 
-		switch ($node->nodeType) {
-			case XML_CDATA_SECTION_NODE:
-				$output['@cdata'] = trim($node->textContent);
-				break;
+        switch ($node->nodeType) {
+            case XML_CDATA_SECTION_NODE:
+                $output['@cdata'] = trim($node->textContent);
+                break;
 
-			case XML_TEXT_NODE:
-				$output = trim($node->textContent);
-				break;
+            case XML_TEXT_NODE:
+                $output = trim($node->textContent);
+                break;
 
-			case XML_ELEMENT_NODE:
+            case XML_ELEMENT_NODE:
 
-				// for each child node, call the covert function recursively
-				for ($i=0, $m=$node->childNodes->length; $i<$m; $i++) {
-					$child = $node->childNodes->item($i);
-					$v = self::convert($child);
-					if(isset($child->tagName)) {
-						$t = $child->tagName;
+                // for each child node, call the covert function recursively
+                for ($i=0, $m=$node->childNodes->length; $i<$m; $i++) {
+                    $child = $node->childNodes->item($i);
+                    $v = self::convert($child);
+                    if(isset($child->tagName)) {
+                        $t = $child->tagName;
 
-						// assume more nodes of same kind are coming
-						if(!isset($output[$t])) {
-							$output[$t] = array();
-						}
-						$output[$t][] = $v;
-					} else {
-						//check if it is not an empty text node
-						if($v !== '') {
-							$output = $v;
-						}
-					}
-				}
+                        // assume more nodes of same kind are coming
+                        if(!isset($output[$t])) {
+                            $output[$t] = array();
+                        }
+                        $output[$t][] = $v;
+                    } else {
+                        //check if it is not an empty text node
+                        if($v !== '') {
+                            $output = $v;
+                        }
+                    }
+                }
 
-				if(is_array($output)) {
-					// if only one node of its kind, assign it directly instead if array($value);
-					foreach ($output as $t => $v) {
-						if(is_array($v) && count($v)==1) {
-							$output[$t] = $v[0];
-						}
-					}
-					if(empty($output)) {
-						//for empty nodes
-						$output = '';
-					}
-				}
+                if(is_array($output)) {
+                    // if only one node of its kind, assign it directly instead if array($value);
+                    foreach ($output as $t => $v) {
+                        if(is_array($v) && count($v)==1) {
+                            $output[$t] = $v[0];
+                        }
+                    }
+                    if(empty($output)) {
+                        //for empty nodes
+                        $output = '';
+                    }
+                }
 
-				// loop through the attributes and collect them
-				if($node->attributes->length) {
-					$a = array();
-					foreach($node->attributes as $attrName => $attrNode) {
-						$a[$attrName] = (string) $attrNode->value;
-					}
-					// if its an leaf node, store the value in @value instead of directly storing it.
-					if(!is_array($output)) {
-						$output = array('@value' => $output);
-					}
-					$output['@attributes'] = $a;
-				}
-				break;
-		}
-		return $output;
+                // loop through the attributes and collect them
+                if($node->attributes->length) {
+                    $a = array();
+                    foreach($node->attributes as $attrName => $attrNode) {
+                        $a[$attrName] = (string) $attrNode->value;
+                    }
+                    // if its an leaf node, store the value in @value instead of directly storing it.
+                    if(!is_array($output)) {
+                        $output = array('@value' => $output);
+                    }
+                    $output['@attributes'] = $a;
+                }
+                break;
+        }
+        return $output;
     }
 
     /*

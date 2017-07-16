@@ -110,7 +110,6 @@ var SwVtTools = {
         });
 
         $('.Select2ForRelTabSelection').each(function(index, ele) {
-            console.log(relTabAvailable[$(ele).data('module')]);
             $(ele).select2({
                 width:'100%',
                 'multiple':true,
@@ -178,8 +177,21 @@ var SwVtTools = {
 
             $.post('index.php', { module:'SwVtTools', parent:'Settings', action: 'GeneralOptions', option:'DeletePartialDetailView', id:id }, function(response) {
                 $(e.currentTarget).closest('tr').remove();
+
+                window.location.href = "index.php?module=SwVtTools&view=Index&parent=Settings&tab=tab2";
             });
 
-        })
+        });
+        $('.trashRelTabOrder').on('click', function(e) {
+            if(confirm('Really delete this order?') == false) return;
+            var id = $(e.currentTarget).data('id');
+
+            $.post('index.php', { module:'SwVtTools', parent:'Settings', action: 'GeneralOptions', option:'DeleteRelatedTabOrder', id:id }, function(response) {
+                $(e.currentTarget).closest('tr').remove();
+
+                window.location.href = "index.php?module=SwVtTools&view=Index&parent=Settings&tab=tab3";
+            });
+
+        });
     });
 })(jQuery);

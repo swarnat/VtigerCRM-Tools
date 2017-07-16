@@ -121,11 +121,48 @@ class Settings_SwVtTools_Index_View extends Settings_Vtiger_Index_View {
             $adb->query($sql);
         }
 
+        $loadModuleFields = array();
+
         $obj = new SwVtTools();
         $obj->checkDB();
 
         if(!empty($_POST['tool_action'])) {
             switch($_POST['tool_action']) {
+                case 'save_listviewwidget':
+                    foreach($_POST['widget'] as $widgetId => $widgetData) {
+                        $data = array(
+                            'fields' => $widgetData['fields']
+                        );
+
+                        $sql = 'UPDATE vtiger_tools_listwidget SET active = ?, title = ?, settings = ? WHERE id = ?';
+                        $adb->pquery($sql, array(!empty($widgetData['active'])?1:0, $widgetData['title'], json_encode($data), $widgetId));
+
+                        $sql = 'SELECT linkid FROM vtiger_links WHERE  linktype = "LISTVIEWSIDEBARWIDGET" AND linkurl = "module=SwVtTools&view=ListViewQuickSearchWidget&widgetmodule='.$widgetData['module'].'&widgetid='.$widgetId.'"';
+                        $result = $adb->pquery($sql);
+
+                        if($adb->num_rows($result) > 0) {
+                            if (empty($widgetData['active'])) {
+                                $sql = 'DELETE FROM vtiger_links WHERE linktype = "LISTVIEWSIDEBARWIDGET" AND linkurl = "module=SwVtTools&view=ListViewQuickSearchWidget&widgetmodule='.$widgetData['module'].'&widgetid=' . $widgetId . '"';
+                                $adb->pquery($sql);
+                            } else {
+                                $sql = 'UPDATE vtiger_links SET linklabel = ? WHERE  linktype = "LISTVIEWSIDEBARWIDGET" AND linkurl = "module=SwVtTools&view=ListViewQuickSearchWidget&widgetmodule='.$widgetData['module'].'&widgetid=' . $widgetId . '"';
+                                $adb->pquery($sql, array($widgetData['title']));
+                            }
+                        } elseif (!empty($widgetData['active'])) {
+                            Vtiger_Link::addLink(
+                                getTabid($widgetData['module']),
+                                "LISTVIEWSIDEBARWIDGET",
+                                $widgetData['title'],
+                                'module=SwVtTools&view=ListViewQuickSearchWidget&widgetmodule='.$widgetData['module'].'&widgetid=' . $widgetId,
+                                "", "2", "");
+                        }
+                    }
+                    break;
+                case 'add_listviewwidget':
+                    $moduleName = $request->get('modulename');
+                    $sql = 'INSERT INTO vtiger_tools_listwidget SET active = 0, title = "Quick Search", module = ?, settings = ?';
+                    $adb->pquery($sql, array($moduleName, json_encode(array())));
+                    break;
                 case 'add_reltab_order':
                     $adb = \PearDatabase::getInstance();
                     $em = new VTEventsManager($adb);
@@ -139,9 +176,8 @@ class Settings_SwVtTools_Index_View extends Settings_Vtiger_Index_View {
                         $tmp[] = 'part-'.$row['id'];
                     }
 
+                    //$tmp[] = 'tab-touchpoints';
                     $tmp[] = 'tab-comments';
-                    $tmp[] = 'tab-history';
-
 
                     $sql = 'SELECT * FROM vtiger_relatedlists WHERE tabid = ? ORDER BY sequence';
                     $availableResult = $adb->pquery($sql, array(getTabid($_POST['modulename'])));
@@ -149,12 +185,17 @@ class Settings_SwVtTools_Index_View extends Settings_Vtiger_Index_View {
                         $tmp[] = 'rel-'.$available['relation_id'];
                     }
 
+                    //$tmp[] = 'tab-history';
+
                     $saveContent = array(
                         'ids' => $tmp,
                         'labels' => $this->getTabLabels($tmp),
                     );
                     $sql = 'INSERT INTO vtiger_tools_reltab SET modulename = ?, relations = ?';
                     $adb->pquery($sql, array($_POST['modulename'], json_encode($saveContent)));
+
+                    header('Location:index.php?module=SwVtTools&view=Index&parent=Settings&tab=tab3');
+                    exit();
                     break;
                 case 'save_reltab_order':
 
@@ -474,6 +515,16 @@ class Settings_SwVtTools_Index_View extends Settings_Vtiger_Index_View {
 
         $viewer->assign('sidebars', $sidebars);
 
+        $sql = 'SELECT * FROM vtiger_tools_listwidget ORDER BY module, title';
+        $result = $adb->query($sql);
+        $listwidgets = array();
+        while($row = $adb->fetchByAssoc($result)) {
+            $loadModuleFields[$row['module']] = true;
+            $row['settings'] = json_decode(html_entity_decode($row['settings']), true);
+            $listwidgets[] = $row;
+        }
+        $viewer->assign('listwidgets', $listwidgets);
+
         $sql = 'SELECT fieldname, fieldlabel, tabid, uitype FROM vtiger_field WHERE (uitype = 10 OR uitype = 51 OR uitype = 101 OR uitype = 57 OR uitype = 58 OR uitype = 59 OR uitype = 73 OR uitype = 75 OR uitype = 76 OR uitype = 78 OR uitype = 80 OR uitype = 81 OR uitype = 68) AND presence = 2 ORDER BY tabid';
         $result = $adb->query($sql);
 
@@ -536,23 +587,24 @@ class Settings_SwVtTools_Index_View extends Settings_Vtiger_Index_View {
         $availableTabIndex = array();
         while($row = $adb->fetchByAssoc($result)) {
             $relTabs[$row['modulename']] = array(
+                'id' => $row['id'],
                 'modulename' => html_entity_decode($row['modulename']),
                 'relations' => json_decode(html_entity_decode($row['relations']))
             );
 
             $availableTabs[$row['modulename']] = array(
-                array(
+                /*array(
                     'id' => 'tab-comments',
                     'text' => 'ModComments'
                 ),
-                array(
+/*                array(
                     'id' => 'tab-history',
                     'text' => 'Updates'
-                ),
+                ),*/
             );
             $availableTabIndex[$row['modulename']] = array(
-                'tab-comments' => 0,
-                'tab-history' => 1,
+              //  'tab-comments' => 0,
+              //  'tab-history' => 1,
             );
 
             $sql = 'SELECT * FROM vtiger_relatedlists WHERE tabid = ? ORDER BY sequence';
@@ -580,7 +632,15 @@ class Settings_SwVtTools_Index_View extends Settings_Vtiger_Index_View {
             }
         }
 
+        $moduleFields = array();
+        foreach($loadModuleFields as $moduleName => $dmy) {
+            $moduleFields[$moduleName] = \SwVtTools\VtUtils::getFieldsWithBlocksForModule($moduleName);
+        }
+        if(!empty($_REQUEST['tab'])) {
+            $viewer->assign('current_tab', $_REQUEST['tab']);
+        }
         $viewer->assign('availableTabIndex', $availableTabIndex);
+        $viewer->assign('moduleFields', $moduleFields);
         $viewer->assign('availableTabs', $availableTabs);
         $viewer->assign('relTabs', $relTabs);
 

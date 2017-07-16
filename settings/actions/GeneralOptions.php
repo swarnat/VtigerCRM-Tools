@@ -26,6 +26,10 @@ class Settings_SwVtTools_GeneralOptions_Action extends Settings_Vtiger_Basic_Act
         }
 
         switch($request->get('option')) {
+            case 'DeleteRelatedTabOrder':
+                $sql = 'DELETE FROM vtiger_tools_reltab WHERE id = ?';
+                $adb->pquery($sql, array($request->get('id')));
+                break;
             case 'DeletePartialDetailView':
                 $sql = 'DELETE FROM vtiger_tools_detailpart WHERE id = ?';
                 $adb->pquery($sql, array($request->get('id')));

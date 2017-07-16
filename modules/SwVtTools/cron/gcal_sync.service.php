@@ -28,12 +28,11 @@ echo 'GoogleCal Sync'.PHP_EOL;
 
     while($user = $adb->fetchByAssoc($result)) {
         try {
-            $user2 = CRMEntity::getInstance('Users');
-            $user2->retrieveCurrentUserInfoFromFile($user['user']);
+            $user3 = Users_Record_Model::getInstanceFromPreferenceFile($user['user']);
 
-            vglobal('current_user', $user2);
+            vglobal('current_user', $user3);
 
-            $controller = new Google_Calendar_Controller($user2);
+            $controller = new Google_Calendar_Controller($user3);
 
             if($enableSharedCalendar === true && method_exists($controller, 'getCalendarId')) {
                 $calId = $controller->getCalendarId();

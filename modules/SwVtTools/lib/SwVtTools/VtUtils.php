@@ -500,34 +500,51 @@ class VtUtils
 
     public static function getFieldTypeName($uitype, $typeofdata = false) {
         global $adb;
+        switch($uitype) {
+            case 117:
+            case 115:
+            case 15:
+            case 16:
+            case 98:
+                return 'picklist';
+                break;
+            case 5:
+            case 70:
+            case 23:
+                return 'date';
+                break;
+            case 6:
+                return 'datetime';
+                break;
+            case 1024:
+                return 'reference';
+                break;
+        }
 
-		if(empty(self::$UITypesName)) {
-			$result = $adb->query("select * from vtiger_ws_fieldtype");
+        if(empty(self::$UITypesName)) {
+            $result = $adb->query("select * from vtiger_ws_fieldtype");
 
-			while($row = $adb->fetch_array($result)) {
-				self::$UITypesName[$row['uitype']] = $row['fieldtype'];
-			}
-		}
+            while($row = $adb->fetchByAssoc($result)) {
+                self::$UITypesName[$row['uitype']] = $row['fieldtype'];
+            }
+        }
 
         if(!empty(self::$UITypesName[$uitype])) {
             return self::$UITypesName[$uitype];
         }
 
-        if($typeofdata !== false) {
-            $type = explode('~', $typeofdata);
-
-            switch($type){
-                case 'T': return "time";
-                case 'D':
-                case 'DT': return "date";
-                case 'E': return "email";
-                case 'N':
-                case 'NN': return "double";
-                case 'P': return "password";
-                case 'I': return "integer";
-                case 'V':
-                default: return "string";
-            }
+        $type = explode('~', $typeofdata);
+        switch($type[0]){
+            case 'T': return "time";
+            case 'D':
+            case 'DT': return "date";
+            case 'E': return "email";
+            case 'N':
+            case 'NN': return "double";
+            case 'P': return "password";
+            case 'I': return "integer";
+            case 'V':
+            default: return "string";
         }
 
     }

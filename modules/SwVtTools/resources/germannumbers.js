@@ -23,7 +23,7 @@ jQuery(function() {
 		this.setSelectionRange(start, end);
 
 	});
-	jQuery('.listPrice, .qty, .lineItemInputBox, .currencyField').bindFirst('keyup', function() {
+	jQuery('.listPrice, .qty, .lineItemInputBox, .currencyField, .discountVal, .groupTaxPercentage, .chargeTaxPercentage').bindFirst('keyup', function() {
 	  // store current positions in variables
 		var start = this.selectionStart;
 		var end = this.selectionEnd;
@@ -34,15 +34,8 @@ jQuery(function() {
 
 		this.setSelectionRange(start, end);
 	});
-	if(jQuery('#view').val() == 'PriceBookProductPopup') {
-		jQuery('.btn.addButton').bindFirst('click', function() {
-			jQuery('[name="listPrice"][data-decimal-seperator=","]').each(function(index, value) {
-				jQuery(value).val(jQuery(value).val().replace('.',','));
-			});
-		});
-	}
 });
-
+/*
 jQuery('.input-large[data-fieldinfo]').bindFirst('keyup', function() {
     var fieldData = jQuery(this).data();
     var fieldInfo = fieldData.fieldinfo;
@@ -68,3 +61,4 @@ jQuery('.input-large[data-fieldinfo]').bindFirst('keyup', function() {
     }
 
 });
+*/

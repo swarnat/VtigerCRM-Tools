@@ -44,6 +44,7 @@ class SwVtTools_Module_Model extends Products_Module_Model {
 			return $overRideQuery;
 		}
 	}
+
 	public static function Log($type, $content) {
 
 		$content = str_replace('<br />', PHP_EOL, $content);

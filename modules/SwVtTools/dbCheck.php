@@ -28,6 +28,18 @@ if(!\SwVtTools\VtUtils::existTable("vtiger_tools_detailpart")) {
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB;");
 }
+if(!\SwVtTools\VtUtils::existTable("vtiger_tools_listwidget")) {
+    echo "Create table vtiger_tools_listwidget  ... ok<br>";
+    $adb->query("CREATE TABLE `vtiger_tools_listwidget` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `active` tinyint(4) NOT NULL,
+  `title` varchar(64) NOT NULL,
+  `module` varchar(32) NOT NULL,
+  `settings` text NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `module` (`module`)
+) ENGINE=InnoDB;");
+}
 if(!\SwVtTools\VtUtils::existTable("vtiger_tools_sidebar")) {
     echo "Create table vtiger_tools_sidebar ... ok<br>";
     $adb->query("CREATE TABLE IF NOT EXISTS `vtiger_tools_sidebar` (

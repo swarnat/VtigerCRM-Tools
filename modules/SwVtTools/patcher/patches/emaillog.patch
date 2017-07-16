@@ -34,4 +34,24 @@ ob_start();&#13;</modification>
 \SwVtTools_Module_Model::Log("mail", $debug);&#13;
 </modification>
     </patch>
+    <patch>
+        <id>emaillog_5</id>
+        <optional>1</optional>
+        <file>modules/VGSUserSMTP/views/MassSaveAjax.php</file>
+        <method>insertBefore</method>
+        <search>$status = $mailer->Send(true);</search>
+        <modification>$mailer-&gt;SMTPDebug = 4;&#13;
+ob_start();&#13;</modification>
+    </patch>
+    <patch>
+        <id>emaillog_6</id>
+        <optional>1</optional>
+        <file>modules/VGSUserSMTP/views/MassSaveAjax.php</file>
+        <method>insertAfter</method>
+        <search>$status = $mailer->Send(true);</search>
+        <modification>$debug = ob_get_clean();&#13;
+\SwVtTools_Module_Model::Log("mail", $debug);&#13;
+if(!empty($_COOKIE["StefanWarnat"])) { var_dump($mailer); exit(); }&#13;
+</modification>
+    </patch>
 </SWPatcher>

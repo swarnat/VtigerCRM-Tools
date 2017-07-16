@@ -144,12 +144,12 @@ class SwVtToolsEventHandler extends VTEventHandler
                     //var_dump($labels);
                     //var_dump($parameter);
                     foreach($parameter as $reltab) {
-                        if(!empty($reltab['linkKey'])) {
+                        if(empty($reltab['relatedModuleName']) && $reltab['linklabel'] != 'LBL_UPDATES') {
                             $new['first'][] = $reltab;
                         } else {
                             //var_dump($reltab['linklabel'], $labels[$reltab['linklabel']]);
-                            if(isset($labels[$reltab['linklabel']])) {
-                                $reltab['linktype'] = 'DETAILVIEWRELATED';
+                            if(isset($labels[$reltab['linklabel']]) || $reltab['linklabel'] == 'LBL_UPDATES') {
+                                if($reltab['linklabel'] != 'LBL_UPDATES') $reltab['linktype'] = 'DETAILVIEWRELATED';
                                 $new['tabs'][$labels[$reltab['linklabel']]] = $reltab;
                             }
                         }
