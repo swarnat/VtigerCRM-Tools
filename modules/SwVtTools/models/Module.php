@@ -44,6 +44,37 @@ class SwVtTools_Module_Model extends Products_Module_Model {
 			return $overRideQuery;
 		}
 	}
+
+	public static function Log($type, $content) {
+
+		$content = str_replace('<br />', PHP_EOL, $content);
+		$content = str_replace('SMTP -> get_lines(): $str is', '', $content);
+		$content = str_replace('SMTP -> get_lines(): $str was', '', $content);
+		$content = str_replace('SMTP -> get_lines(): $data is "', '', $content);
+		$content = str_replace('SMTP -> get_lines(): $data was "', '', $content);
+		$content = preg_replace("/\s(.{60,})\s/m", " ", $content); // Remove Attached Files
+
+		$content = preg_replace("/CLIENT -> SMTP:(\s+)\n/", "", $content);
+
+		$lines = explode("\n", $content);
+		$debug = array();
+		foreach($lines as $line) {
+			$line = trim($line, '"');
+			$line = str_replace(' ', '||', $line);
+			$line = preg_replace("/\\s+/iu","",$line);
+			$line = str_replace('||"', '', $line);
+			$line = str_replace('||', ' ', $line);
+
+			if(!empty($line)) {
+				$debug[] = $line;
+			}
+		}
+
+		$adb = \PearDatabase::getInstance();
+		$sql = 'INSERT INTO vtiger_tools_logs SET `type` = ?, `log` = ?, created = NOW()';
+		$adb->pquery($sql, array($type, implode(PHP_EOL, $debug)));
+	}
+
     public function getBlockIndex($tabid, $blocklabel, $view = "detailview") {
         $db = PearDatabase::getInstance();
 

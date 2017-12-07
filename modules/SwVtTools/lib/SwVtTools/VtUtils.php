@@ -71,6 +71,26 @@ class VtUtils
         return $adb->query_result($result, 0, "columnname");
     }
 
+    /**
+     * Function returns all fielddata to the field from parameters
+     *
+     * @param string $fieldname The FieldName (NOT Columnname)
+     * @param int [$tabid]
+     * @return array|bool|null
+     */
+    public static function getFieldInfo($fieldname, $tabid = null) {
+        global $adb;
+
+        $sql = "SELECT * FROM vtiger_field WHERE (fieldname = ? OR columnname = ?) " . (!empty($tabid) ? ' AND tabid = '.$tabid : '');
+        $result = $adb->pquery($sql, array($fieldname, $fieldname), true);
+
+        if($adb->num_rows($result) == 0) {
+            return false;
+        }
+
+        return $adb->fetchByAssoc($result);
+    }
+
     private static $_FieldCache = array();
     public static function getFieldsForModule($module_name, $uitype = false) {
         global $current_language;
@@ -198,6 +218,148 @@ class VtUtils
 //7f18c166060f17d0ce582a4359ad1cbc
         return unserialize(serialize($moduleFields));
     }
+
+    private static $_FieldModelCache = array();
+    public static function getFieldModelsForModule($module_name, $uitype = false) {
+        global $current_language;
+
+        if($uitype !== false && !is_array($uitype)) {
+            $uitype = array($uitype);
+        }
+
+        $cacheKey = md5(serialize($uitype).$module_name);
+
+        if(isset(self::$_FieldModelCache[$cacheKey])) {
+            return unserialize(serialize(self::$_FieldModelCache[$cacheKey]));
+        }
+
+        $adb = \PearDatabase::getInstance();
+        $query = "SELECT * FROM vtiger_field WHERE tabid = ? ORDER BY sequence";
+        $queryParams = Array(getTabid($module_name));
+
+        $result = $adb->pquery($query, $queryParams);
+
+        /**
+         * @var [\Vtiger_Field_Model] $fields
+         */
+        $fields = array();
+
+        while($valuemap = $adb->fetchByAssoc($result)) {
+            /**
+             * @var \Vtiger_Field_Model $tmp
+             */
+            $tmp = \Vtiger_Field_Model::getInstanceFromFieldId($valuemap['fieldid'], getTabid($module_name));
+
+            /*
+            $tmp = new \stdClass();
+            $tmp->id = $valuemap['fieldid'];
+            $tmp->name = $valuemap['fieldname'];
+            $tmp->label= $valuemap['fieldlabel'];
+            $tmp->column = $valuemap['columnname'];
+            $tmp->table  = $valuemap['tablename'];
+            $tmp->uitype = $valuemap['uitype'];
+            $tmp->typeofdata = $valuemap['typeofdata'];
+            $tmp->helpinfo = $valuemap['helpinfo'];
+            $tmp->masseditable = $valuemap['masseditable'];
+            $tmp->displaytype   = $valuemap['displaytype'];
+            $tmp->generatedtype = $valuemap['generatedtype'];
+            $tmp->readonly      = $valuemap['readonly'];
+            $tmp->presence      = $valuemap['presence'];
+            $tmp->defaultvalue  = $valuemap['defaultvalue'];
+            $tmp->quickcreate = $valuemap['quickcreate'];
+            $tmp->sequence = $valuemap['sequence'];
+            $tmp->summaryfield = $valuemap['summaryfield'];
+*/
+            $fields[] = $tmp[0];
+        }
+
+        $module = $module_name;
+        if($module != "Events") {
+       	    $modLang = return_module_language($current_language, $module);
+        }
+        $moduleFields = array();
+
+/*
+        // Fields in this module
+        include_once("vtlib/Vtiger/Module.php");
+
+       	#$alle = glob(dirname(__FILE__).'/functions/*.inc.php');
+       	#foreach($alle as $datei) { include $datei; }
+
+
+       	$instance = Vtiger_Module::getInstance($module);
+       	//$blocks = Vtiger_Block::getAllForModule($instance);
+
+
+
+        $fields = Vtiger_Field::getAllForModule($instance);
+*/
+        //$blocks = Vtiger_Block::getAllForModule($instance);
+        if(is_array($fields)) {
+            foreach($fields as $field) {
+
+                //$fieldlabel = $field->get('fieldlabel');
+                //$field->set('fieldlabel', isset($modLang[$fieldlabel])?$modLang[$fieldlabel]:$fieldlabel );
+/*
+                $field->type = new StdClass();
+                $field->type->name = self::getFieldTypeName($field->uitype, $field->typeofdata);
+*/
+                /*if($field->type->name == 'picklist') {
+                    $language = \Vtiger_Language_Handler::getModuleStringsFromFile($current_language, $field->block->module->name);
+                    if(empty($language)) {
+                        $language = \Vtiger_Language_Handler::getModuleStringsFromFile('en_us', $field->block->module->name);
+                    }
+
+                    switch($field->name) {
+                        case 'hdnTaxType':
+                            $field->type->picklistValues = array(
+                                'group' => 'Group',
+                                'individual' => 'Individual',
+                            );
+                            break;
+                        case 'email_flag':
+                            $field->type->picklistValues = array(
+                                'SAVED' => 'SAVED',
+                                'SENT' => 'SENT',
+                                'MAILSCANNER' => 'MAILSCANNER',
+                            );
+                            break;
+                        case 'currency_id':
+                            $field->type->picklistValues = array();
+                            $currencies = getAllCurrencies();
+                            foreach($currencies as $currencies) {
+                                $field->type->picklistValues[$currencies['currency_id']] = $currencies['currencylabel'];
+                            }
+
+                        break;
+                        default:
+                            $field->type->picklistValues = getAllPickListValues($field->name, $language['languageStrings']);
+                        break;
+                    }
+
+                }
+*/
+                if($uitype !== false) {
+                    if(in_array($field->uitype, $uitype)) {
+                        $moduleFields[] = $field;
+                    }
+                } else {
+                    $moduleFields[] = $field;
+                }
+            }
+/*
+            $crmid = new StdClass();
+            $crmid->name = 'crmid';
+            $crmid->label = 'ID';
+            $crmid->type = 'string';
+            $moduleFields[] = $crmid;
+*/
+        }
+
+        self::$_FieldModelCache[$cacheKey] = $moduleFields;
+//7f18c166060f17d0ce582a4359ad1cbc
+        return unserialize(serialize($moduleFields));
+    }
     public static function getReferenceFieldsForModule($module_name) {
         global $adb;
         $relations = array();
@@ -261,8 +423,8 @@ class VtUtils
                     $row["module"] = "Contacts";
                        break;
                 case "10": # Possibly multiple relations
-                        $result = $adb->pquery('SELECT relmodule FROM `vtiger_fieldmodulerel` WHERE fieldid = ?', array($row["fieldid"]));
-                        while ($data = $adb->fetch_array($result)) {
+                        $resultTMP = $adb->pquery('SELECT relmodule FROM `vtiger_fieldmodulerel` WHERE fieldid = ?', array($row["fieldid"]));
+                        while ($data = $adb->fetch_array($resultTMP)) {
                             $row["module"] = $data["relmodule"];
                             $relations[] = $row;
                         }
@@ -338,36 +500,230 @@ class VtUtils
 
     public static function getFieldTypeName($uitype, $typeofdata = false) {
         global $adb;
+        switch($uitype) {
+            case 117:
+            case 115:
+            case 15:
+            case 16:
+            case 98:
+                return 'picklist';
+                break;
+            case 5:
+            case 70:
+            case 23:
+                return 'date';
+                break;
+            case 6:
+                return 'datetime';
+                break;
+            case 1024:
+                return 'reference';
+                break;
+        }
 
-		if(empty(self::$UITypesName)) {
-			$result = $adb->query("select * from vtiger_ws_fieldtype");
+        if(empty(self::$UITypesName)) {
+            $result = $adb->query("select * from vtiger_ws_fieldtype");
 
-			while($row = $adb->fetch_array($result)) {
-				self::$UITypesName[$row['uitype']] = $row['fieldtype'];
-			}
-		}
+            while($row = $adb->fetchByAssoc($result)) {
+                self::$UITypesName[$row['uitype']] = $row['fieldtype'];
+            }
+        }
 
         if(!empty(self::$UITypesName[$uitype])) {
             return self::$UITypesName[$uitype];
         }
 
-        if($typeofdata !== false) {
-            $type = explode('~', $typeofdata);
+        $type = explode('~', $typeofdata);
+        switch($type[0]){
+            case 'T': return "time";
+            case 'D':
+            case 'DT': return "date";
+            case 'E': return "email";
+            case 'N':
+            case 'NN': return "double";
+            case 'P': return "password";
+            case 'I': return "integer";
+            case 'V':
+            default: return "string";
+        }
 
-            switch($type){
-                case 'T': return "time";
-                case 'D':
-                case 'DT': return "date";
-                case 'E': return "email";
-                case 'N':
-                case 'NN': return "double";
-                case 'P': return "password";
-                case 'I': return "integer";
-                case 'V':
-                default: return "string";
+    }
+
+    public static function getFieldModelsWithBlocksForModule($module_name, $references = false, $refTemplate = "([source]: ([module]) [destination])") {
+        global $current_language, $adb, $app_strings;
+        \Vtiger_Cache::$cacheEnable = false;
+
+        $start = microtime(true);
+        if(empty($refTemplate) && $references == true) {
+            $refTemplate = "([source]: ([module]) [destination])";
+        }
+
+        $module = $module_name;
+       	$instance = \Vtiger_Module_Model::getInstance($module);
+       	$blocks = \Vtiger_Block_Model::getAllForModule($instance);
+        ////echo 'C'.__LINE__.': '.round(microtime(true) - $start, 2).'<br/>';
+        if($module != "Events") {
+            $langModule = $module;
+        } else {
+            $langModule = "Calendar";
+        }
+        $modLang = return_module_language($current_language, $langModule);
+        //echo 'C'.__LINE__.': '.round(microtime(true) - $start, 2).'<br/>';
+        $moduleFields = array();
+
+        $addReferences = array();
+
+
+        if(is_array($blocks)) {
+            foreach($blocks as $block) {
+                $fields = \Vtiger_Field_Model::getAllForBlock($block, $instance);
+                //echo 'C'.__LINE__.': '.round(microtime(true) - $start, 2).'<br/>';
+                if(empty($fields) || !is_array($fields)) {
+                    continue;
+                }
+
+                foreach($fields as $field) {
+                    $field->label = getTranslatedString($field->label, $langModule);
+                    $field->type = new StdClass();
+                    $field->type->name = self::getFieldTypeName($field->uitype);
+
+                    if($field->type->name == 'picklist') {
+                        $language = \Vtiger_Language_Handler::getModuleStringsFromFile($current_language, $field->block->module->name);
+                        if(empty($language)) {
+                            $language = \Vtiger_Language_Handler::getModuleStringsFromFile('en_us', $field->block->module->name);
+                        }
+
+                        switch($field->name) {
+                            case 'hdnTaxType':
+                                $field->type->picklistValues = array(
+                                    'group' => 'Group',
+                                    'individual' => 'Individual',
+                                );
+                                break;
+                            case 'email_flag':
+                                $field->type->picklistValues = array(
+                                    'SAVED' => 'SAVED',
+                                    'SENT' => 'SENT',
+                                    'MAILSCANNER' => 'MAILSCANNER',
+                                );
+                                break;
+                            case 'currency_id':
+                                $field->type->picklistValues = array();
+                                $currencies = getAllCurrencies();
+                                foreach($currencies as $currencies) {
+                                    $field->type->picklistValues[$currencies['currency_id']] = $currencies['currencylabel'];
+                                }
+
+                            break;
+                            default:
+                                $field->type->picklistValues = getAllPickListValues($field->name, $language['languageStrings']);
+                            break;
+                        }
+
+                    }
+                    if(in_array($field->uitype, self::$referenceUitypes)) {
+                        $modules = self::getModuleForReference($field->block->module->id, $field->name, $field->uitype);
+
+                        $field->type->refersTo = $modules;
+                    }
+
+                    if($references !== false) {
+
+                        switch ($field->uitype) {
+                            case "51":
+                                   $addReferences[] = array($field, "Accounts");
+                            break;
+                            case "52":
+                                   $addReferences[] = array($field, "Users");
+                            break;
+                            case "53":
+                                   $addReferences[] = array($field, "Users");
+                            break;
+                            case "57":
+                                   $addReferences[] = array($field, "Contacts");
+                               break;
+                            case "58":
+                                   $addReferences[] = array($field,"Campaigns");
+                               break;
+                            case "59":
+                                   $addReferences[] = array($field,"Products");
+                               break;
+                            case "73":
+                                   $addReferences[] = array($field,"Accounts");
+                               break;
+                            case "75":
+                                   $addReferences[] = array($field,"Vendors");
+                               break;
+                            case "81":
+                                   $addReferences[] = array($field,"Vendors");
+                               break;
+                            case "76":
+                                   $addReferences[] = array($field,"Potentials");
+                               break;
+                            case "78":
+                                   $addReferences[] = array($field,"Quotes");
+                               break;
+                            case "80":
+                                   $addReferences[] = array($field,"SalesOrder");
+                               break;
+                            case "68":
+                                   $addReferences[] = array($field,"Accounts");
+                                   $addReferences[] = array($field,"Contacts");
+                                   break;
+                            case "10": # Possibly multiple relations
+                                    $result = $adb->pquery('SELECT relmodule FROM `vtiger_fieldmodulerel` WHERE fieldid = ?', array($field->id));
+                                    while ($data = $adb->fetch_array($result)) {
+                                        $addReferences[] = array($field,$data["relmodule"]);
+                                    }
+                                break;
+                        }
+                    }
+
+                    $moduleFields[getTranslatedString($block->label, $langModule)][] = $field;
+                }
+            }
+            $crmid = new StdClass();
+            $crmid->name = 'crmid';
+            $crmid->label = 'ID';
+            $crmid->type = 'string';
+            reset($moduleFields);
+            $first_key = key($moduleFields);
+            $moduleFields[$first_key] = array_merge(array($crmid), $moduleFields[$first_key]);
+
+        }
+        //echo 'C'.__LINE__.': '.round(microtime(true) - $start, 2).'<br/>';
+        $rewriteFields = array(
+            "assigned_user_id" => "smownerid"
+        );
+
+        /*if($references !== false) {
+            $field = \Vtiger_Field_Model::getAllForModule()
+            $field->name = "current_user";
+            $field->label = getTranslatedString("LBL_CURRENT_USER", "CloudFile");
+            $addReferences[] = array($field, "Users");
+        }*/
+        if(is_array($addReferences)) {
+
+            foreach($addReferences as $refField) {
+                //echo 'C'.__LINE__.': '.round(microtime(true) - $start, 2).'<br/>';
+                $fields = self::getFieldsForModule($refField[1]);
+
+                foreach($fields as $field) {
+                    $field->label = "(".(isset($app_strings[$refField[1]])?$app_strings[$refField[1]]:$refField[1]).") ".$field->label;
+
+                    if(!empty($rewriteFields[$refField[0]->name])) {
+                        $refField[0]->name = $rewriteFields[$refField[0]->name];
+                    }
+                    $name = str_replace(array("[source]", "[module]", "[destination]"), array($refField[0]->name, $refField[1], $field->name), $refTemplate);
+                    $field->name = $name;
+
+                    $moduleFields["References (".$refField[0]->label.")"][] = $field;
+                }
             }
         }
 
+        \Vtiger_Cache::$cacheEnable = true;
+        return $moduleFields;
     }
 
     public static function getFieldsWithBlocksForModule($module_name, $references = false, $refTemplate = "([source]: ([module]) [destination])") {
@@ -797,7 +1153,7 @@ class VtUtils
             curl_setopt($curl,	CURLOPT_POST, count($params));
             curl_setopt($curl,	CURLOPT_POSTFIELDS, $params);
 			#curl_setopt($curl, 	CURLOPT_VERBOSE, 1);
-            curl_setopt($curl, 	CURLOPT_FOLLOWLOCATION, TRUE);
+            curl_setopt($curl, 	CURLOPT_FOLLOWLOCATION, true);
 
             $content = curl_exec($curl);
 
@@ -820,6 +1176,35 @@ class VtUtils
             throw new Exception('You have neither cUrl installed nor allow_url_fopen activated. Please setup one of those!');
         }
         return $content;
+    }
+
+    public static function getModuleTableSQL($moduleName) {
+        /**
+         * @var $obj \CRMEntity
+         */
+        $obj = \CRMEntity::getInstance($moduleName);
+        $sql = array();
+        $sql[] = "FROM ".$obj->table_name;
+
+        $relations = $obj->tab_name_index;
+        $pastJoinTables = array($obj->table_name);
+        foreach($relations as $table => $index) {
+            if(in_array($table, $pastJoinTables)) {
+                continue;
+            }
+
+            $postJoinTables[] = $table;
+            if($table == "vtiger_crmentity") {
+                $join = "INNER";
+            } else {
+                $join = "LEFT";
+            }
+
+            $sql[] = $join." JOIN `".$table."` ON (`".$table."`.`".$index."` = `".$obj->table_name."`.`".$obj->table_index."`)";
+        }
+
+        return implode("\n", $sql);
+
     }
 
 }

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SWPatcher>
+    <requirements>
+        <module url="https://github.com/swarnat/vtigerCRM-EventHandler/tree/vtiger6">EventHandler</module>
+    </requirements>
+    <patch>
+        <id>listview_1</id>
+        <file>modules/Vtiger/models/ListView.php</file>
+        <method>insertBefore</method>
+        <search>$listQuery = $this-&gt;getQuery();</search>
+        <function>getListViewEntries</function>
+        <duplicatecheck>vtiger.filter.listview.querygenerator.before</duplicatecheck>
+        <modification>$this-&gt;set(&#13;
+            'query_generator',&#13;
+            EventHandler_Module_Model::do_filter(&#13;
+            array(&#13;
+            'vtiger.filter.listview.querygenerator.before',&#13;
+            'vtiger.filter.listview.'.strtolower($moduleName).'.querygenerator.before'&#13;
+            ),&#13;
+            $this-&gt;get('query_generator'),&#13;
+            $pagingModel&#13;
+            )&#13;
+            );</modification>
+    </patch>
+    <patch>
+        <id>swsearchplus_33a</id>
+        <file>modules/Vtiger/models/Record.php</file>
+        <method>insertBefore</method>
+        <duplicatecheck>vtiger.filter.searchrecords.query</duplicatecheck>
+        <search>$query = 'SELECT label, crmid, setype, createdtime FROM vtiger_crmentity WHERE label LIKE ? AND vtiger_crmentity.deleted = 0';</search>
+        <modification>$result = EventHandler_Module_Model::do_filter({&#13;
+                      			array({&#13;
+                      				'vtiger.filter.searchrecords.query',{&#13;
+                      			),{&#13;
+                      			false,{&#13;
+                      			$module,{&#13;
+                      			$searchKey{&#13;
+                      		);{&#13;
+                      		if($result === false) {
+        </modification>
+      </patch>
+    <patch>
+        <id>swsearchplus_33b</id>
+        <file>modules/Vtiger/models/Record.php</file>
+        <method>insertBefore</method>
+        <search>$result = $db->pquery($query, $params);</search>
+        <modification>}</modification>
+      </patch>
+</SWPatcher>
