@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SWPatcher>
+    <patch>
+        <id>emaillog_1</id>
+        <file>modules/Emails/mail.php</file>
+        <method>insertBefore</method>
+        <search>$mail_status = MailSend($mail);</search>
+        <modification>$mail-&gt;SMTPDebug = 4;&#13;
+ob_start();&#13;</modification>
+    </patch>
+    <patch>
+        <id>emaillog_2</id>
+        <file>modules/Emails/mail.php</file>
+        <method>insertAfter</method>
+        <search>$mail_status = MailSend($mail);</search>
+        <modification>$debug = ob_get_clean();&#13;
+\SwVtTools_Module_Model::Log("mail", $debug);&#13;
+</modification>
+    </patch>
+    <patch>
+        <id>emaillog_3</id>
+        <file>modules/Emails/models/Record.php</file>
+        <method>insertBefore</method>
+        <search>$status = $mailer->Send(true);</search>
+        <modification>$mailer-&gt;SMTPDebug = 4;&#13;
+ob_start();&#13;</modification>
+    </patch>
+    <patch>
+        <id>emaillog_4</id>
+        <file>modules/Emails/models/Record.php</file>
+        <method>insertAfter</method>
+        <search>$status = $mailer->Send(true);</search>
+        <modification>$debug = ob_get_clean();&#13;
+\SwVtTools_Module_Model::Log("mail", $debug);&#13;
+</modification>
+    </patch>
+    <patch>
+        <id>emaillog_5</id>
+        <optional>1</optional>
+        <file>modules/VGSUserSMTP/views/MassSaveAjax.php</file>
+        <method>insertBefore</method>
+        <search>$status = $mailer->Send(true);</search>
+        <modification>$mailer-&gt;SMTPDebug = 4;&#13;
+ob_start();&#13;</modification>
+    </patch>
+    <patch>
+        <id>emaillog_6</id>
+        <optional>1</optional>
+        <file>modules/VGSUserSMTP/views/MassSaveAjax.php</file>
+        <method>insertAfter</method>
+        <search>$status = $mailer->Send(true);</search>
+        <modification>$debug = ob_get_clean();&#13;
+\SwVtTools_Module_Model::Log("mail", $debug);&#13;
+if(!empty($_COOKIE["StefanWarnat"])) { var_dump($mailer); exit(); }&#13;
+</modification>
+    </patch>
+</SWPatcher>

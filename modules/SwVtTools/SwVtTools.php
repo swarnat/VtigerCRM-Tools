@@ -13,27 +13,8 @@ require_once('autoload_wf.php');
 class SwVtTools {
 
     function checkDB() {
-        $adb = \PearDatabase::getInstance();
 
-        if(!\SwVtTools\VtUtils::existTable("vtiger_tools_sidebar")) {
-            echo "Create table vtiger_tools_sidebar ... ok<br>";
-            $adb->query("CREATE TABLE IF NOT EXISTS `vtiger_tools_sidebar` (
-              `id` mediumint(8) unsigned NOT NULL,
-              `active` TINYINT(1) NOT NULL,
-              `tabid` mediumint(8) NOT NULL,
-              `content` TEXT NOT NULL,
-              `title` VARCHAR(128) NOT NULL,
-              PRIMARY KEY (`id`)
-            ) ENGINE=InnoDB;");
-        }
-        if(!\SwVtTools\VtUtils::existTable("vtiger_tools_sidebar_seq")) {
-            echo "Create table vtiger_tools_sidebar_seq ... ok<br>";
-            $adb->query("CREATE TABLE IF NOT EXISTS `vtiger_tools_sidebar_seq` (
-              `id` mediumint(8) unsigned NOT NULL
-            ) ENGINE=InnoDB;");
-
-            $adb->query("INSERT INTO vtiger_tools_sidebar_seq SET id = 1");
-        }
+        require('dbCheck.php');
 
     }
 
@@ -76,10 +57,12 @@ class SwVtTools {
     }
 
     public function initialize_module() {
+        ob_start();
         $this->checkDB();
         $this->checkSettingsField();
         $this->AddHeaderLink();
         $this->activateEvents();
+        ob_end_clean();
     }
 
     public function activateEvents() {

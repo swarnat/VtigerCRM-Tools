@@ -82,8 +82,17 @@ var SWVtigerTools = {
         if(typeof SWVtigerTools.registeredFilter[key] === 'undefined') {
             return param;
         }
+
+        var params = [param];
+        if(arguments.length > 2) {
+            for(var i = 2;i < arguments.length;i++) {
+                params.push(arguments[i]);
+            }
+        }
+
         jQuery.each(SWVtigerTools.registeredFilter[key], function(index, value) {
-            var newParam = value(param);
+            var newParam = value.apply({}, params);
+            params[0] = newParam;
             if(typeof newParam !== 'undefined') {
                 param = newParam;
             }
@@ -113,10 +122,12 @@ jQuery.fn.bindFirst = function(name, fn) {
     // namespaced events too.
     this.each(function() {
         var handlers = $._data(this, 'events')[name.split('.')[0]];
-        console.log(handlers);
+
         // take out the handler we just inserted from the end
         var handler = handlers.pop();
         // move it at the beginning
         handlers.splice(0, 0, handler);
     });
 };
+
+/** ACTIONHANDLER START **/

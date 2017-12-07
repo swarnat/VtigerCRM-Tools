@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SWPatcher>
+    <requirements>
+        <module url="https://github.com/swarnat/vtigerCRM-EventHandler/tree/vtiger6">EventHandler</module>
+    </requirements>
+    <patch>
+        <id>partdetail_1</id>
+        <file>vtlib/Vtiger/Block.php</file>
+        <method>insertAfter</method>
+        <search>$query = "SELECT * FROM vtiger_blocks WHERE tabid=? ORDER BY sequence";</search>
+        <duplicatecheck>vtiger.filter.detailview.blocks.sql</duplicatecheck>
+        <modification>$query = EventHandler_Module_Model::do_filter('vtiger.filter.detailview.blocks.sql', $query, $moduleInstance);</modification>
+    </patch>
+    <patch>
+        <id>partdetail_2</id>
+        <file>modules/Vtiger/models/DetailView.php</file>
+        <method>insertBefore</method>
+        <search>return $relatedLinks;</search>
+        <duplicatecheck>vtiger.filter.detailview.relatedtabs</duplicatecheck>
+        <modification>$relatedLinks = EventHandler_Module_Model::do_filter('vtiger.filter.detailview.relatedtabs', $relatedLinks, $this);</modification>
+    </patch>
+</SWPatcher>

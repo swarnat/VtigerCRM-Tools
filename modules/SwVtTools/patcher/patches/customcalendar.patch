@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SWPatcher>
+    <patch>
+        <id>customgooglecal_1</id>
+        <file>modules/Google/connectors/Calendar.php</file>
+        <method>insertBefore</method>
+        <search>$calendarRecords = array();</search>
+        <modification>
+        try {&#13;
+            $feed = $this-&gt;service-&gt;events-&gt;listEvents( !empty($this-&gt;calendarId) ? $this-&gt;calendarId : 'primary' ,$query);&#13;
+        } catch (Exception $e) {&#13;
+            if($e-&gt;getCode() == 410) {&#13;
+                $query['showDeleted'] = false;&#13;
+                $feed = $this-&gt;service-&gt;events-&gt;listEvents(!empty($this-&gt;calendarId) ? $this-&gt;calendarId : 'primary',$query);&#13;
+            }&#13;
+        }
+        </modification>
+    </patch>
+    <patch>
+        <id>customgooglecal_2</id>
+        <file>modules/Google/connectors/Calendar.php</file>
+        <method>replacewith</method>
+        <search>$newEntity = $this-&gt;service-&gt;events-&gt;insert('primary',$entity);[//]$record-&gt;set('entity', $newEntity);</search>
+        <modification>
+try {&#13;
+    if($this-&gt;calendarId !== null) {&#13;
+        $newEntity = $this-&gt;service-&gt;events-&gt;insert($this-&gt;calendarId, $entity);&#13;
+    } else {&#13;
+        $newEntity = $this-&gt;service-&gt;events-&gt;insert('primary',$entity);&#13;
+    }&#13;
+} catch (Exception $e) {&#13;
+  var_dump($e-&gt;getMessage());&#13;
+}
+        </modification>
+    </patch>
+</SWPatcher>
