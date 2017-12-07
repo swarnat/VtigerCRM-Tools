@@ -5,4 +5,4 @@ VtigerCRM-Tools
 
 Compatible to VtigerCRM 7.0.0, 7.0.1
 
-for more information go to this page: https://shop.stefanwarnat.de/vtigercrm-tools/
+for more information go to this page: https://support.redoo-networks.com/vtiger-tools/
