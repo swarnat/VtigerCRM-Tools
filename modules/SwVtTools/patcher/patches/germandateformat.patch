@@ -29,7 +29,7 @@
         <file>include/fields/DateTimeField.php</file>
         <method>insertBefore</method>
         <function>__convertToDBFormat</function>
-        <search><![CDATA[if (!$y && !$m && !$d) {]]></search>
+        <search>if (!$y &amp;&amp; !$m &amp;&amp; !$d) {</search>
         <modification>
         elseif ($format == 'dd.mm.yyyy') {&#13;
             if(strpos($date, "-") !== false) {&#13;

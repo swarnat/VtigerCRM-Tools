@@ -235,6 +235,31 @@ class Patcher
             $manipulations = array($manipulations);
         }
 
+        if(!empty($array['SWPatcher']['requirements'])) {
+            if(isset($array['SWPatcher']['requirements']['module'])) {
+
+                if(!isset($array['SWPatcher']['requirements']['module'][0])) {
+                    $modules = array($array['SWPatcher']['requirements']['module']);
+                } else {
+                    $modules = $array['SWPatcher']['requirements']['module'];
+                }
+
+                foreach($modules as $mod) {
+                    if(!empty($mod['@value'])) {
+                        $modName = $mod['@value'];
+                    } else {
+                        $modName = $mod;
+                    }
+
+                    if(!vtlib_isModuleActive($modName)) {
+                        $errors[] = 'Module <strong>'.$modName.'</strong> required! Please install first! '.(!empty($mod['@attributes']['url'])?'(<a target="_blank" href="'.$mod['@attributes']['url'].'">Link</a>)':'');
+                    } else {
+                        $this->messages[] = 'Module <strong>'.$modName.'</strong> found!';
+                    }
+                }
+            }
+        }
+
         $alreadyExistingIDs = array();
 
         foreach($manipulations as $modification) {
