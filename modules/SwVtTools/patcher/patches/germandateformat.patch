@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SWPatcher>
+    <patch>
+        <id>germandate_1</id>
+        <file>vtlib/Vtiger/Functions.php</file>
+        <method>insertBefore</method>
+        <search>return $dt_popup_fmt;</search>
+        <function>currentUserJSDateFormat</function>
+        <modification>
+        elseif ($current_user-&gt;date_format == 'dd.mm.yyyy') {&#13;
+            $dt_popup_fmt = "%d.%m.%Y";&#13;
+        }
+        </modification>
+    </patch>
+    <patch>
+        <id>germandate_2</id>
+        <file>vtlib/Vtiger/Functions.php</file>
+        <method>insertAfter</method>
+        <function>currentUserDisplayDate</function>
+        <search>$dat_fmt = $current_user-&gt;date_format;</search>
+        <modification>
+		if ($dat_fmt == '') {&#13;
+			$dat_fmt = 'dd.mm.yyyy';&#13;
+		}
+        </modification>
+    </patch>
+    <patch>
+        <id>germandate_3</id>
+        <file>include/fields/DateTimeField.php</file>
+        <method>insertBefore</method>
+        <function>__convertToDBFormat</function>
+        <search><![CDATA[if (!$y && !$m && !$d) {]]></search>
+        <modification>
+        elseif ($format == 'dd.mm.yyyy') {&#13;
+            if(strpos($date, "-") !== false) {&#13;
+                list($d, $m, $y) = explode('-', $date);&#13;
+            } else {&#13;
+                list($d, $m, $y) = explode('.', $date);&#13;
+            }&#13;
+        }
+        </modification>
+    </patch>
+    <patch>
+        <id>germandate_4</id>
+        <file>include/fields/DateTimeField.php</file>
+        <method>insertBefore</method>
+        <function>__convertToUserFormat</function>
+        <search>if ($date[1] != '') {</search>
+        <modification>
+        elseif ($format == 'dd.mm.yyyy') {&#13;
+            $date[0] = $d . '.' . $m . '.' . $y;&#13;
+        }
+        </modification>
+    </patch>
+    <patch>
+        <id>germandate_5</id>
+        <file>include/fields/DateTimeField.php</file>
+        <method>insertAfter</method>
+        <function>convertToUserFormat</function>
+        <search>$format = $user-&gt;date_format;</search>
+        <modification>
+       if(empty($format)) {&#13;
+            $format = 'dd.mm.yyyy';&#13;
+        }
+        </modification>
+    </patch>
+    <patch>
+        <id>germandate_6</id>
+        <file>include/fields/DateTimeField.php</file>
+        <method>insertAfter</method>
+        <function>convertToDBFormat</function>
+        <search>$format = $current_user-&gt;date_format;</search>
+        <modification>
+	    if(empty($format)) {&#13;
+            $format = 'dd.mm.yyyy';&#13;
+        }
+        </modification>
+    </patch>
+    <patch>
+        <id>germandate_7</id>
+        <file>include/ComboStrings.php</file>
+        <method>insertBefore</method>
+        <search>'mm-dd-yyyy'=&gt;'mm-dd-yyyy',</search>
+        <modification>
+	    'dd.mm.yyyy'=&gt;'dd.mm.yyyy',
+        </modification>
+    </patch>
+    <patch>
+        <id>germandate_8</id>
+        <file>modules/Calendar/RepeatEvents.php</file>
+        <method>insertBefore</method>
+        <function>formattime</function>
+        <search>case 'yyyy-mm-dd': $format_string = 'Y-m-d H:i'; break;</search>
+        <modification>
+	    case 'dd.mm.yyyy': $format_string = 'd.m.Y H:i'; break;
+        </modification>
+    </patch>
+    <patch>
+        <id>germandate_9</id>
+        <file>modules/Vtiger/helpers/Util.php</file>
+        <method>insertBefore</method>
+        <function>formatDateTimeIntoDayString</function>
+        <search>$formatedDate = vtranslate('LBL_'.date('D', $date)). ', ' .vtranslate('LBL_'.date('M', $date)). ' ' .date('d', $date). ', ' .date('Y', $date);</search>
+        <modification>
+        if($currentUser-&gt;get("language") == "de_de") {&#13;
+            $formatedDate = vtranslate('LBL_'.date('D', $date)). ', ' .date('d', $date). '. ' .vtranslate('LBL_'.date('M', $date)). ' ' .date('Y', $date);&#13;
+            //Adding time details&#13;
+            $formatedDate .= ' um ' .$displayTime. ' Uhr';&#13;
+        } else {&#13;
+            $formatedDate = vtranslate('LBL_'.date('D', $date)). ', ' .vtranslate('LBL_'.date('M', $date)). ' ' .date('d', $date). ', ' .date('Y', $date);&#13;
+            //Adding time details&#13;
+            $formatedDate .= ' ' .vtranslate('LBL_AT'). ' ' .$displayTime;&#13;
+        }&#13;
+        return $formatedDate;
+        </modification>
+    </patch>
+    <patch>
+        <id>germandate_10</id>
+        <file>modules/Vtiger/helpers/Util.php</file>
+        <method>insertBefore</method>
+        <function>formatDateTimeIntoDayString</function>
+        <search>$formatedDate = vtranslate('LBL_'.date('D', $date)). ', ' .vtranslate('LBL_'.date('M', $date)). ' ' .date('d', $date). ', ' .date('Y', $date);</search>
+        <modification>
+        if($currentUser-&gt;get("language") == "de_de") {&#13;
+            $formatedDate = vtranslate('LBL_'.date('D', $date)). ', ' .date('d', $date). '. ' .vtranslate('LBL_'.date('M', $date)). ' ' .date('Y', $date);&#13;
+            //Adding time details&#13;
+            $formatedDate .= ' um ' .$displayTime. ' Uhr';&#13;
+        } else {&#13;
+            $formatedDate = vtranslate('LBL_'.date('D', $date)). ', ' .vtranslate('LBL_'.date('M', $date)). ' ' .date('d', $date). ', ' .date('Y', $date);&#13;
+            //Adding time details&#13;
+            $formatedDate .= ' ' .vtranslate('LBL_AT'). ' ' .$displayTime;&#13;
+        }&#13;
+        return $formatedDate;
+        </modification>
+    </patch>
+    <patch>
+        <id>germandate_11</id>
+        <file>resources/app.js</file>
+        <method>insertAfter</method>
+        <search>return 'd-m-Y';</search>
+        <modification>
+                } else if (dateFormat == 'dd.mm.yyyy') {&#13;
+                    return 'd.m.Y';
+        </modification>
+    </patch>
+    <patch>
+        <id>germandate_12</id>
+        <file>resources/app.js</file>
+        <method>insertAfter</method>
+        <search>var splitDateFormat = dateFormat.split('-');</search>
+        <modification>
+        var dotMode = false;&#13;
+        if(dateFormat.indexOf(".") != -1 &amp;&amp; dateFormat.indexOf("-") == -1) {&#13;
+            dotMode = true;&#13;
+        }&#13;
+        var splitDateFormat = dateFormat.split(dotMode?'.':'-');
+        </modification>
+    </patch>
+    <patch>
+        <id>germandate_12b</id>
+        <file>resources/app.js</file>
+        <method>insertAfter</method>
+        <search>var joinedDateFormat =  splitDateFormat.join('-');</search>
+        <modification>
+        var joinedDateFormat =  splitDateFormat.join(dotMode?'.':'-');
+        </modification>
+    </patch>
+    <patch>
+        <id>germandate_13</id>
+        <file>layouts/v7/modules/Vtiger/resources/dashboards/Widget.js</file>
+        <method>insertAfter</method>
+        <search>return 'dd-MM-yyyy';</search>
+        <modification>
+       } else if(userDateFormat == 'dd.mm.yyyy') {&#13;
+            return 'dd.MM.yyyy';
+        </modification>
+    </patch>
+    <patch>
+        <id>germandate_14</id>
+        <file>layouts/v7/resources/helper.js</file>
+        <method>insertAfter</method>
+        <search>var splittedDate = dateComponent.split("-");</search>
+        <modification>
+        var dotMode = false;&#13;
+        if(dateComponent.indexOf(".") != -1 &amp;&amp; dateComponent.indexOf("-") == -1) {&#13;
+            dotMode = true;&#13;
+        }&#13;
+        var splittedDate = dateComponent.split(dotMode?".":"-");
+        </modification>
+    </patch>
+    <patch>
+        <id>germandate_15</id>
+        <file>layouts/v7/resources/helper.js</file>
+        <method>insertAfter</method>
+        <search>var splittedDateFormat = dateFormat.split("-");</search>
+        <modification>
+        var splittedDateFormat = dateFormat.split(dotMode?".":"-");
+        </modification>
+    </patch>
+</SWPatcher>

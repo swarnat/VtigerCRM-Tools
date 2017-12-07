@@ -26,6 +26,20 @@ class Settings_SwVtTools_GeneralOptions_Action extends Settings_Vtiger_Basic_Act
         }
 
         switch($request->get('option')) {
+            case 'germanDateFormatStep1':
+                $sql = 'SELECT * FROM vtiger_date_format WHERE date_format = "dd.mm.yyyy"';
+                $result = $adb->query($sql);
+
+                if($adb->num_rows($result) == 0) {
+                    $sql = 'INSERT INTO `vtiger_date_format` (`date_formatid`, `date_format`, `sortorderid`, `presence`) VALUES (4, "dd.mm.yyyy", 0, 1);';
+                    $adb->query($sql);
+
+                    echo 'Database changes done';
+                } else {
+                    echo 'No changes necessary';
+                }
+
+                break;
             case 'DeleteRelatedTabOrder':
                 $sql = 'DELETE FROM vtiger_tools_reltab WHERE id = ?';
                 $adb->pquery($sql, array($request->get('id')));

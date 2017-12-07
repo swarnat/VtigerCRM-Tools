@@ -2,9 +2,12 @@
 /**
  * Patcher Class to automatically Apply Patches
  *
- * @version 1.2
+ * @version 1.3
  *
  * Changelog
+ * 1.3 - 2017-12-07
+ *      Implement Duplicate ModificationID check
+ *      Implement XML Error output
  * 1.2 - 2017-05-27
  * 		Remove Patch function
  * 1.1 - 2017-04-09
@@ -232,9 +235,15 @@ class Patcher
             $manipulations = array($manipulations);
         }
 
+        $alreadyExistingIDs = array();
+
         foreach($manipulations as $modification) {
             //if($modification['file'] != 'modules/Vtiger/models/Field.php') continue;
+            if(isset($alreadyExistingIDs[$modification['id']])) {
+                $errors[] = 'Modification '.$modification['id'].' is existing multiple times.';
+            }
 
+            $alreadyExistingIDs[$modification['id']] = true;
             $modification['orig_search'] = $modification['search'];
             $modification['search'] = explode("[//]", $modification['search']);
             foreach($modification['search'] as $index => $value) {
@@ -742,11 +751,20 @@ class XML2Array {
      * @return \DOMDocument
      */
     public static function &createArray($input_xml) {
+        libxml_use_internal_errors(true);
         $xml = self::getXMLRoot();
         if(is_string($input_xml)) {
+
             $parsed = $xml->loadXML($input_xml);
+            foreach(libxml_get_errors() as $e){
+                if(isset($e->message)) {
+                    $error = $e->message.' Line '.$e->line.' Col '.$e->column;
+                }
+            }
+
+            //var_dump(libxml_get_errors());
             if(!$parsed) {
-                throw new \Exception('[XML2Array] Error parsing the XML string.');
+                throw new \Exception('[XML2Array] Error parsing the XML string:<br/>' . $error);
             }
         } else {
             if(get_class($input_xml) != 'DOMDocument') {
